@@ -51,6 +51,7 @@ test("uses unlink when trash providers are missing", async () => {
   const result = await deleteSessionFile("session.json", {
     spawn: async () => spawnResult({ error: missing, status: null }),
     existsSync: () => true,
+    moveToUserTrash: () => false,
     unlink: async (path: string) => {
       unlinkedPath = path;
     },
@@ -93,6 +94,7 @@ test("returns final unlink failure with trash provider hints", async () => {
   const result = await deleteSessionFile("session.json", {
     spawn: async (command: string) => spawnResult({ status: 1, stderr: `${command} failed` }),
     existsSync: () => true,
+    moveToUserTrash: () => false,
     unlink: async () => {
       throw new Error("permission denied");
     },
@@ -103,4 +105,18 @@ test("returns final unlink failure with trash provider hints", async () => {
   assert.match(result.error, /permission denied/);
   assert.match(result.error, /trash: trash failed/);
   assert.match(result.error, /gio trash: gio failed/);
+});
+
+test("refuses to trash or unlink a DSH session artifact", async () => {
+  const result = await deleteSessionFile("/tmp/session/session.jsonl.zstd", {
+    spawn: async () => {
+      throw new Error("trash should not run");
+    },
+    unlink: async () => {
+      throw new Error("unlink should not run");
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /DSH session artifact/);
 });

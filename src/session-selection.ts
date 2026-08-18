@@ -3,7 +3,11 @@ import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { buildSessionSelectionLabel } from "./session-format.js";
 import { getErrorMessage } from "./error-utils.js";
 import { showSessionCleanupPicker } from "./tui/session-cleanup-picker.js";
-import type { SessionCleanupSession, SessionSelectionResult } from "./types.js";
+import type {
+  SessionCleanupSession,
+  SessionScope,
+  SessionSelectionResult,
+} from "./types.js";
 
 interface ConfirmAction {
   kind: "confirm";
@@ -154,9 +158,10 @@ async function selectSessionsWithLegacyMenu(
 export async function selectSessionsForCleanup(
   ctx: ExtensionCommandContext,
   sessions: readonly SessionCleanupSession[],
+  scope: SessionScope,
 ): Promise<SessionSelectionResult> {
   try {
-    return await showSessionCleanupPicker(ctx, sessions);
+    return await showSessionCleanupPicker(ctx, sessions, scope);
   } catch (error) {
     ctx.ui.notify(
       `Interactive picker failed (${getErrorMessage(error)}). Falling back to basic selector.`,

@@ -22,33 +22,33 @@ import type {
   SessionScope,
 } from "./types.js";
 
-interface ParsedArgs {
+export interface ParsedSessionCleanupArgs {
   help: boolean;
   scope: SessionScope;
   error?: string;
 }
 
 function usage(): string {
-  return `Usage: /${SESSION_CLEANUP_COMMAND} [current|all]`;
+  return `Usage: /${SESSION_CLEANUP_COMMAND} [orphaned|current|all]`;
 }
 
-function parseArgs(args: string): ParsedArgs {
+export function parseSessionCleanupArgs(args: string): ParsedSessionCleanupArgs {
   const normalized = args.trim().toLowerCase();
   if (!normalized) {
-    return { help: false, scope: "current" };
+    return { help: false, scope: "orphaned" };
   }
 
   if (normalized === "help") {
-    return { help: true, scope: "current" };
+    return { help: true, scope: "orphaned" };
   }
 
-  if (normalized === "current" || normalized === "all") {
+  if (normalized === "orphaned" || normalized === "current" || normalized === "all") {
     return { help: false, scope: normalized };
   }
 
   return {
     help: false,
-    scope: "current",
+    scope: "orphaned",
     error: `Unknown argument: ${args.trim()}`,
   };
 }
@@ -164,7 +164,7 @@ export async function handleSessionCleanupCommand(
   args: string,
   ctx: ExtensionCommandContext,
 ): Promise<void> {
-  const parsed = parseArgs(args);
+  const parsed = parseSessionCleanupArgs(args);
   if (parsed.help) {
     ctx.ui.notify(usage(), "info");
     return;
@@ -196,14 +196,15 @@ export async function handleSessionCleanupCommand(
     );
 
     if (candidates.length === 0) {
-      ctx.ui.notify(
-        "No deletable sessions found for this scope (current active session is excluded).",
-        "info",
-      );
+      const emptyMessage =
+        parsed.scope === "orphaned"
+          ? "No orphaned sessions found (every listed session still has a matching directory)."
+          : "No deletable sessions found for this scope (current active session is excluded).";
+      ctx.ui.notify(emptyMessage, "info");
       return;
     }
 
-    const selection = await selectSessionsForCleanup(ctx, candidates);
+    const selection = await selectSessionsForCleanup(ctx, candidates, parsed.scope);
     if (selection.cancelled) {
       ctx.ui.notify("Session cleanup cancelled.", "info");
       return;

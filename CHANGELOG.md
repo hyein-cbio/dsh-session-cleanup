@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+- Native DSH plugin (`apply`/`inject`/`name`) that lists sessions through `sessionPersistence.listSnapshots()` + `locate()` and deletes them with the host cleanup chain: stop/flush/detach, remove the session directory and sidecar (**Trash on macOS**, `rm -rf` elsewhere), then clear projection cache and workspace accounting.
+- Ship a compiled `lib/dsh-entry.js` so DSH can load the plugin from `node_modules` (Node will not strip TypeScript there).
+- `/session-cleanup delete <id...>` for explicit DSH deletions, plus a user-questions multi-select flow when that service is mounted.
+- Slash-command descriptions include the argument grammar so pi-tui's `/` list shows usage even though the host does not forward `input.hint` as `argumentHint`.
+- Native DSH `/nix`, `/nix agent [preset]`, and `/nix quit`: create a new session through `ctx.agents.create` (or `ctx.sessions.create`), delete the current one through the host cleanup chain. `/nix quit` then disposes the root fiber and exits the process, matching pi-tui Ctrl+C/Ctrl+D.
+
+### Fixed
+- Restored the documented default `/session-cleanup` behavior: list only orphaned sessions, and accept an explicit `orphaned` scope.
+- Fall back to the basic selector when `ctx.ui.custom()` is a no-op (pi2dsh RPC/headless).
+- Refuse Pi trash/unlink against DSH `session.jsonl.zstd` artifacts so a mapped path cannot punch a hole in DSH persistence.
+
 ## [1.2.0] - 2026-07-03
 
 ### Added

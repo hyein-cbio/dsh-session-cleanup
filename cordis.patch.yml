@@ -1,0 +1,4 @@
+# Inserts the native DSH command plugin. Loaded via `dsh plugin add`.
+- insert:
+    - id: dsh-session-cleanup
+      name: dsh-session-cleanup

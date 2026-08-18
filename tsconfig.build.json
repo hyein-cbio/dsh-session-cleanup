@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "outDir": "lib",
+    "rootDir": ".",
+    "declaration": false,
+    "noCheck": true
+  },
+  "include": [
+    "dsh-entry.ts",
+    "src/dsh/**/*.ts",
+    "src/orphaned.ts",
+    "src/session-format.ts",
+    "src/error-utils.ts",
+    "src/trash.ts",
+    "src/constants.ts",
+    "src/types.ts"
+  ],
+  "exclude": ["node_modules", "test"]
+}
