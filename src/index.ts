@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { loadSessionCleanupConfig } from "./config-store.js";
+import { dshPluginApplied } from "./dsh/plugin.js";
 import { SESSION_CLEANUP_COMMAND, SESSION_NIX_COMMAND } from "./constants.js";
 import { flushScheduledSessionDeletionForQuit } from "./session-quit-shutdown.js";
 import {
@@ -40,6 +41,12 @@ const loadSessionNixCommandModule = createLazyModuleLoader<SessionNixCommandModu
 
 export default function sessionCleanupExtension(pi: ExtensionAPI): void {
   if (!loadSessionCleanupConfig().enabled) {
+    return;
+  }
+
+  // When this package is also mounted as a native DSH plugin, that host
+  // command owns /session-cleanup so we do not register the Pi handlers twice.
+  if (dshPluginApplied()) {
     return;
   }
 

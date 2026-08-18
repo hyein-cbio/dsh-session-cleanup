@@ -8,7 +8,11 @@ import {
   shortenPath,
 } from "../session-format.js";
 import { loadSessionCleanupConfig } from "../config-store.js";
-import type { SessionSelectionResult, SessionCleanupSession } from "../types.js";
+import type {
+  SessionCleanupSession,
+  SessionScope,
+  SessionSelectionResult,
+} from "../types.js";
 import { resolvePickerIcons, type PickerIcons } from "../ui/icons.js";
 import { buildLegendContent } from "../ui/legend.js";
 import {
@@ -38,7 +42,11 @@ interface ColumnLayout {
   path: number;
 }
 
-const TITLE_TEXT = "SESSION CLEANUP : BATCH DELETE";
+const TITLE_BY_SCOPE: Record<SessionScope, string> = {
+  orphaned: "SESSION CLEANUP : ORPHANED",
+  current: "SESSION CLEANUP : CURRENT DIR",
+  all: "SESSION CLEANUP : ALL SESSIONS",
+};
 const ROW_PREFIX_WIDTH = 6;
 const AGE_COLUMN_WIDTH = 5;
 const ID_COLUMN_WIDTH = 8;
@@ -179,6 +187,7 @@ class SessionCleanupPicker extends ListPicker {
   constructor(
     private readonly sessions: readonly SessionCleanupSession[],
     private readonly selectedPaths: Set<string>,
+    private readonly scope: SessionScope,
     theme: ThemeLike,
     initialIcons: PickerIcons,
     maxRenderRows: number,
@@ -218,7 +227,7 @@ class SessionCleanupPicker extends ListPicker {
     this.pushPickerHeader(
       lines,
       frameInnerWidth,
-      TITLE_TEXT,
+      TITLE_BY_SCOPE[this.scope],
       buildStatsLine(frameInnerWidth, this.sessions.length, this.selectedPaths.size, start, end),
     );
     lines.push(
@@ -368,6 +377,7 @@ class SessionCleanupPicker extends ListPicker {
 export async function showSessionCleanupPicker(
   ctx: ExtensionCommandContext,
   sessions: readonly SessionCleanupSession[],
+  scope: SessionScope,
 ): Promise<SessionSelectionResult> {
   const overlayOptions = resolveOverlayOptions(OVERLAY_PREFERENCES);
   const config = loadSessionCleanupConfig();
@@ -375,12 +385,15 @@ export async function showSessionCleanupPicker(
   const selectedPaths = new Set<string>();
 
   let finalResult: SessionSelectionResult | null = null;
+  let factoryRan = false;
 
   await ctx.ui.custom<void>(
     (tui, theme, _keybindings, done) => {
+      factoryRan = true;
       const picker = new SessionCleanupPicker(
         sessions,
         selectedPaths,
+        scope,
         theme,
         resolvedIcons.icons,
         overlayOptions.maxHeight,
@@ -400,6 +413,10 @@ export async function showSessionCleanupPicker(
       overlayOptions,
     },
   );
+
+  if (!factoryRan) {
+    throw new Error("Interactive picker is unavailable in this host.");
+  }
 
   if (finalResult) {
     return finalResult;

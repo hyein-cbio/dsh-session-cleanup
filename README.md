@@ -1,169 +1,104 @@
 <div align="center">
 
-# pi-session-cleanup
+# dsh-session-cleanup
 
-[![npm version](https://img.shields.io/npm/v/pi-session-cleanup?style=for-the-badge)](https://www.npmjs.com/package/pi-session-cleanup)
-[![License](https://img.shields.io/github/license/MasuRii/pi-session-cleanup?style=for-the-badge)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=for-the-badge)]()
+Interactive session cleanup for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Y8Y01PSSVR)
-
-Interactive session cleanup extension for the [Pi coding agent](https://github.com/mariozechner/pi).
-<img width="1389" height="768" alt="image" src="https://github.com/user-attachments/assets/42464ca1-4a6c-4496-b13f-5bcc2093bf59" />
-**pi-session-cleanup** provides a focused TUI command for batch-selecting historical sessions and deleting them safely with trash-first fallback and active session protection.
+Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup), ported to DSH so sessions can be listed and removed through official host services instead of Pi JSONL files.
 
 </div>
 
-## Features
+## What this is
 
-- **Interactive Session Cleanup** — Browse, select, and delete sessions via an intuitive modal interface
-- **Scope Filtering** — View only orphaned sessions or all historical sessions
-- **Batch Selection Controls** — Multi-select with Space, select all with `a`, keyboard navigation
-- **Safe Delete Flow** — Excludes the currently active session and uses trash-first deletion with unlink fallback
-- **Fresh Session Shortcut** — `/nix` starts a fresh session and removes the previous session after confirmation
-- **Target Agent Handoff** — `/nix agent [name]` starts a fresh session with persisted active-agent metadata
-- **Quit Cleanup Flow** — `/nix quit` schedules current-session deletion during Pi's graceful shutdown event
-- **Improved Modal UX** — Centered overlay with bordered layout, concise single-line legend, status summary, and automatic icon fallback
+This is a **DSH plugin**, verified on the `pi-tui` profile. It is inspired by MasuRii's Pi extension, but it is not a drop-in Pi package.
+
+On DSH it:
+
+- lists sessions with `sessionPersistence.listSnapshots()` + `locate()`
+- deletes through the host cleanup chain: stop / flush / detach, then the session directory, projection cache, workspace accounting, and pi2dsh sidecar
+- sends the session directory to **Trash on macOS**, and uses `rm -rf` on other platforms
+
+It does **not** trash or unlink a single `session.jsonl.zstd` file.
 
 ## Installation
 
-### Local Extension Folder
-
-Place this folder in one of Pi's auto-discovery paths:
-
-```text
-~/.pi/agent/extensions/pi-session-cleanup     # Global default (when PI_CODING_AGENT_DIR is unset)
-.pi/extensions/pi-session-cleanup               # Project-specific
+```bash
+dsh plugin --profile pi-tui add file:/path/to/dsh-session-cleanup
 ```
 
-Pi will auto-discover the extension on startup.
-
-### As NPM Package
+The package must ship compiled JS (`lib/dsh-entry.js`). From this repo:
 
 ```bash
-pi install npm:pi-session-cleanup
+npm run build
+dsh plugin --profile pi-tui add file:$PWD
 ```
 
-### Git Repository
+Restart the profile. Confirm it loaded:
 
 ```bash
-pi install git:github.com/MasuRii/pi-session-cleanup
+dsh --profile pi-tui --dump-config | grep session-cleanup
+dsh --profile pi-tui
 ```
 
-## Usage
+Currently tested on **`pi-tui`**. Other terminals or the web profile are not guaranteed. The web profile already has a dedicated session-delete plugin.
 
-### Commands
+## Commands
 
 | Command | Arguments | Description |
 |---------|-----------|-------------|
-| `/session-cleanup` | — | Opens the session cleanup modal showing orphaned sessions only |
-| `/session-cleanup current` | — | Opens modal with sessions from the current directory |
-| `/session-cleanup all` | — | Opens modal showing all sessions |
-| `/session-cleanup help` | — | Displays usage help |
-| `/nix` | — | Starts a fresh session after confirmation and deletes the previous session |
-| `/nix quit` | — | Deletes the current session during graceful shutdown and quits Pi |
-| `/nix agent` | `[name]` | Starts a fresh session with a selected or explicitly named target agent |
-| `/nix help` | — | Displays `/nix` usage help |
+| `/session-cleanup` | — | List orphaned sessions (cwd directory is gone) |
+| `/session-cleanup orphaned` | — | Same as default |
+| `/session-cleanup current` | — | Sessions from the current working directory |
+| `/session-cleanup all` | — | All persisted sessions |
+| `/session-cleanup delete` | `<id...>` | Delete those session ids after confirmation |
+| `/session-cleanup help` | — | Usage |
+| `/nix` | — | Create a new DSH session, then delete the current one |
+| `/nix agent` | `[preset]` | Same, with a selected or named agent preset |
+| `/nix quit` | — | Delete the current session and exit DSH |
+| `/nix help` | — | `/nix` usage |
 
-**Scopes:**
+With a `userQuestions` service (pi-tui has one), `/session-cleanup` opens a multi-select + confirm flow. Without one, it prints the list and you delete by id.
 
-- **Default (no args)** — Shows orphaned sessions (sessions without a matching directory)
-- **`current`** — Shows sessions from the current working directory
-- **`all`** — Shows all historical sessions across all directories
+`/` autocomplete in pi-tui shows the argument grammar in the command description. After-space completions (`orphaned`, `quit`, …) need a host-side `argumentHint` hook and are not wired yet.
 
-### `/nix` Fresh Session Workflow
+## `/nix` on DSH
 
-`/nix` is destructive by design and always asks for confirmation before deleting any session file.
+`/nix` is destructive and asks for confirmation.
 
-- **`/nix`** starts a new session with the current agent and deletes the previous session only after `ctx.newSession()` succeeds.
-- **`/nix agent [name]`** starts a new session with the selected target agent and writes an `active_agent` session entry so Pi can resume that agent context. Without `[name]`, the command opens an interactive agent picker; with `[name]`, it validates the name before continuing.
-- **`/nix quit`** requires Pi builds that expose `ctx.shutdown()`. It schedules deletion of the current session and performs the delete from the `session_shutdown` event, so the session file is not removed until Pi has begun graceful shutdown.
+- **`/nix`** creates a new session with `ctx.agents.create` (or `ctx.sessions.create`) using the current cwd and preset, then deletes the previous session.
+- **`/nix agent [preset]`** does the same with a DSH agent preset. Without `[preset]`, it opens a picker.
+- **`/nix quit`** deletes the current session, disposes the root fiber, and `process.exit(0)`.
 
-Target agents are discovered from the nearest project agent folders (`.omp/agents`, `.pi/agents`, `.claude/agents`) plus user agent folders (`~/.omp/agents`, `$PI_CODING_AGENT_DIR/agents`, `~/.claude/agents`). If `pi-agent-router` is installed with custom `agentDiscovery` paths, those paths are reused.
-
-### Modal Controls
-
-When the session picker modal is open:
-
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` / `j` / `k` | Navigate up/down in the list |
-| `PgUp` / `PgDn` | Page up/down through sessions |
-| `Home` / `End` | Jump to first/last item |
-| `Space` | Toggle selection of current item |
-| `a` | Select all visible sessions |
-| `r` | Refresh the session list |
-| `Enter` | Confirm deletion of selected sessions |
-| `Esc` / `q` / `Ctrl+C` | Cancel and close modal |
-
-### Safety Guards
-
-The extension includes multiple safety mechanisms:
-
-1. **Active Session Protection** — The currently active session is never shown in the list and cannot be deleted
-2. **Trash-First Deletion** — Sessions are moved to trash first; only falls back to permanent deletion if trash is unavailable
-3. **Confirmation Required** — The modal requires explicit `Enter` keypress to proceed with deletion, and `/nix` commands require `ctx.ui.confirm()` approval
-4. **Graceful Quit Guard** — `/nix quit` refuses to delete anything when the active Pi build does not expose `ctx.shutdown()`
-5. **Escapable** — `Esc` or `q` immediately cancels without any changes
-
-## Configuration
-
-Configuration is stored at:
+DSH has no host-level “current session pointer”. After `/nix`, the TUI may keep showing the old conversation until you resume the new id:
 
 ```text
-Default global path: ~/.pi/agent/extensions/pi-session-cleanup/config.json
-Actual global path: $PI_CODING_AGENT_DIR/extensions/pi-session-cleanup/config.json when PI_CODING_AGENT_DIR is set
+dsh --profile pi-tui --resume <new-id>
 ```
 
-A starter template is provided in `config/config.example.json`. On startup, the extension creates `config.json` with defaults if missing.
+## Safety
 
-### Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enabled` | `boolean` | `true` | Master on/off switch for the extension |
-| `iconMode` | `"auto" \| "nerd" \| "fallback"` | `"auto"` | Icon rendering mode for the modal UI (`auto` detects Nerd Font usage in supported terminals and safely falls back otherwise) |
-
-### Icon Mode Overrides
-
-You can override icon mode without editing config:
-
-- `PI_SESSION_CLEANUP_ICON_MODE=nerd|fallback|auto`
-- `PI_SESSION_CLEANUP_NERD_FONT=true|false` (or `PI_NERD_FONT=true|false`)
-
-`auto` now prefers Nerd icons when Nerd Font is actually configured (including Windows Terminal profile/default font checks) and falls back to safe icons when detection is unavailable or uncertain.
+1. **Active session excluded** from the cleanup list
+2. **Confirm before delete**
+3. **macOS Trash** for session directories; other platforms permanently remove them
+4. **Cleanup order** — disk/log removal is confirmed before workspace accounting is stripped
+5. **Both id spellings** — `<uuid>` and `session-<uuid>`
 
 ## Development
 
 ```bash
-npm run build    # Type-check with TypeScript
-npm run lint     # Run linting (same as build)
-npm run test     # Run test suite
-npm run check    # Run full verification (build + test)
-npm run package:dry-run
+npm run build    # emit lib/dsh-entry.js for DSH
+npm run test     # test suite
+npm run check    # build + test
 ```
 
-## Publishing
+Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`. That graph does not import Pi packages.
 
-The package metadata follows the same publish-ready shape used by established Pi extensions:
+Stock **pi2dsh** (remote main) is enough for this plugin. A patched pi2dsh is only needed if you load the leftover Pi extension path instead of the native DSH commands.
 
-- entrypoint: `index.ts`
-- package exports: `.` → `./index.ts`
-- Pi extension manifest: `pi.extensions`
-- published files: source, README, changelog, license, and config template
-- runtime `config.json`, tests, and build artifacts excluded from npm publication
+## Attribution
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history.
-
-## Related Pi Extensions
-
-- [pi-hide-messages](https://github.com/MasuRii/pi-hide-messages) — Hide older TUI chat history while preserving full session context
-- [pi-context-injector](https://github.com/MasuRii/pi-context-injector) — Inject compact project context into first-turn and compaction prompts
-- [pi-tool-display](https://github.com/MasuRii/pi-tool-display) — Compact tool rendering and diff visualization
-- [pi-rtk-optimizer](https://github.com/MasuRii/pi-rtk-optimizer) — RTK command rewriting and output compaction
+Command names, scopes, and the `/nix` idea come from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) (MIT © MasuRii). The DSH port uses DeepSeek Harness persistence, workspace accounting, and agent presets.
 
 ## License
 
-[MIT](LICENSE) © MasuRii
+[MIT](LICENSE)

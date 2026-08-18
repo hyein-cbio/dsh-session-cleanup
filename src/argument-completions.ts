@@ -6,6 +6,11 @@ export interface CommandCompletion {
 
 export const SESSION_CLEANUP_ARGUMENT_COMPLETIONS = [
   {
+    value: "orphaned",
+    label: "orphaned",
+    description: "List sessions whose working directory no longer exists",
+  },
+  {
     value: "current",
     label: "current",
     description: "List sessions from the current working directory only",

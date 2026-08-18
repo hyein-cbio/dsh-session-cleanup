@@ -1,6 +1,6 @@
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 
-export type SessionScope = "current" | "all";
+export type SessionScope = "orphaned" | "current" | "all";
 
 export type DeleteMethod = "trash" | "unlink";
 
