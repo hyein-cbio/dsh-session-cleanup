@@ -18,7 +18,7 @@ On DSH it:
 - deletes through the host cleanup chain: stop / flush / detach, then the session directory, projection cache, workspace accounting, and pi2dsh sidecar
 - sends the session directory to **Trash on macOS**, and uses `rm -rf` on other platforms
 
-It does **not** trash or unlink a single `session.jsonl.zstd` file.
+Deletion is the whole session directory (and sidecar), not a single `session.jsonl.zstd`. The leftover Pi trash/unlink path refuses those DSH artifacts so it cannot leave a hole in persistence.
 
 ## Installation
 
