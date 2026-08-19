@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-19
+
+First DSH release. This is a port of [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup), not a continuation of that package's 1.x line.
+
 ### Added
 - Native DSH plugin (`apply`/`inject`/`name`) that lists sessions through `sessionPersistence.listSnapshots()` + `locate()` and deletes them with the host cleanup chain: stop/flush/detach, remove the session directory and sidecar (**Trash on macOS**, `rm -rf` elsewhere), then clear projection cache and workspace accounting.
 - Ship a compiled `lib/dsh-entry.js` so DSH can load the plugin from `node_modules` (Node will not strip TypeScript there).
@@ -13,6 +17,9 @@
 - Restored the documented default `/session-cleanup` behavior: list only orphaned sessions, and accept an explicit `orphaned` scope.
 - Fall back to the basic selector when `ctx.ui.custom()` is a no-op (pi2dsh RPC/headless).
 - Refuse Pi trash/unlink against DSH `session.jsonl.zstd` artifacts so a mapped path cannot punch a hole in DSH persistence.
+
+### Changed
+- Clarify that deletion is the whole session directory and sidecar, not a single `session.jsonl.zstd` file.
 
 ## [1.2.0] - 2026-07-03
 

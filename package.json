@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-cleanup",
-  "version": "1.2.0",
+  "version": "0.1.0",
   "description": "DeepSeek Harness plugin for interactive session cleanup and /nix, inspired by pi-session-cleanup.",
   "type": "module",
   "main": "./lib/dsh-entry.js",

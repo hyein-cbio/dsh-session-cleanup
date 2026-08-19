@@ -23,10 +23,10 @@ Deletion is the whole session directory (and sidecar), not a single `session.jso
 ## Installation
 
 ```bash
-dsh plugin --profile pi-tui add file:/path/to/dsh-session-cleanup
+dsh plugin --profile pi-tui add dsh-session-cleanup
 ```
 
-The package must ship compiled JS (`lib/dsh-entry.js`). From this repo:
+From this repo, or a local checkout, the package must ship compiled JS (`lib/dsh-entry.js`):
 
 ```bash
 npm run build
