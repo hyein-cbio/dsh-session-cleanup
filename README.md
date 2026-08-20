@@ -12,6 +12,8 @@ Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup),
 
 This is a **DSH plugin**, verified on the `pi-tui` and `dsh-tui` profiles. It is inspired by MasuRii's Pi extension, but it is not a drop-in Pi package.
 
+[dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) · 一个为 dsh-TUI 生态打造的插件
+
 On DSH it:
 
 - lists sessions with `sessionPersistence.listSnapshots()` + `locate()`
