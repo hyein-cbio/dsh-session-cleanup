@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-20
+
 ### Changed
 - Document support for both the `pi-tui` and `dsh-tui` profiles.
 
