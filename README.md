@@ -10,7 +10,7 @@ Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup),
 
 ## What this is
 
-This is a **DSH plugin**, verified on the `pi-tui` profile. It is inspired by MasuRii's Pi extension, but it is not a drop-in Pi package.
+This is a **DSH plugin**, verified on the `pi-tui` and `dsh-tui` profiles. It is inspired by MasuRii's Pi extension, but it is not a drop-in Pi package.
 
 On DSH it:
 
@@ -20,10 +20,20 @@ On DSH it:
 
 Deletion is the whole session directory (and sidecar), not a single `session.jsonl.zstd`. The leftover Pi trash/unlink path refuses those DSH artifacts so it cannot leave a hole in persistence.
 
+## Supported TUIs
+
+| Profile | Package | Notes |
+|---|---|---|
+| `pi-tui` | [dsh-pi-tui](https://www.npmjs.com/package/dsh-pi-tui) | Original verification target |
+| `dsh-tui` | [@deepseek-harness-tui/dsh-tui](https://www.npmjs.com/package/@deepseek-harness-tui/dsh-tui) | Claude Code-style TUI; `/nix quit` covers delete-current-and-exit, which that TUI does not do itself |
+
+The web profile is not a target. It already has a dedicated session-delete plugin.
+
 ## Installation
 
 ```bash
 dsh plugin --profile pi-tui add dsh-session-cleanup
+dsh plugin --profile dsh-tui add dsh-session-cleanup
 ```
 
 From this repo, or a local checkout, the package must ship compiled JS (`lib/dsh-entry.js`):
@@ -31,16 +41,17 @@ From this repo, or a local checkout, the package must ship compiled JS (`lib/dsh
 ```bash
 npm run build
 dsh plugin --profile pi-tui add file:$PWD
+# or
+dsh plugin --profile dsh-tui add file:$PWD
 ```
 
 Restart the profile. Confirm it loaded:
 
 ```bash
 dsh --profile pi-tui --dump-config | grep session-cleanup
-dsh --profile pi-tui
+dsh --profile dsh-tui --dump-config | grep session-cleanup
+dsh --profile pi-tui    # or: dsh --profile dsh-tui
 ```
-
-Currently tested on **`pi-tui`**. Other terminals or the web profile are not guaranteed. The web profile already has a dedicated session-delete plugin.
 
 ## Commands
 
@@ -57,9 +68,9 @@ Currently tested on **`pi-tui`**. Other terminals or the web profile are not gua
 | `/nix quit` | — | Delete the current session and exit DSH |
 | `/nix help` | — | `/nix` usage |
 
-With a `userQuestions` service (pi-tui has one), `/session-cleanup` opens a multi-select + confirm flow. Without one, it prints the list and you delete by id.
+With a `userQuestions` service (both `pi-tui` and `dsh-tui` mount one), `/session-cleanup` opens a multi-select + confirm flow. Without one, it prints the list and you delete by id.
 
-`/` autocomplete in pi-tui shows the argument grammar in the command description. After-space completions (`orphaned`, `quit`, …) need a host-side `argumentHint` hook and are not wired yet.
+TUI `/` menus show the argument grammar in the command description. After-space completions (`orphaned`, `quit`, …) need a host-side `argumentHint` hook and are not wired yet.
 
 ## `/nix` on DSH
 
@@ -73,6 +84,7 @@ DSH has no host-level “current session pointer”. After `/nix`, the TUI may k
 
 ```text
 dsh --profile pi-tui --resume <new-id>
+dsh --profile dsh-tui --resume <new-id>
 ```
 
 ## Safety

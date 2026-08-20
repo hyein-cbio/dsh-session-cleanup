@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Document support for both the `pi-tui` and `dsh-tui` profiles.
+
 ## [0.1.0] - 2026-08-19
 
 First DSH release. This is a port of [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup), not a continuation of that package's 1.x line.
