@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Dropped the `pi-package`, `pi-extension`, and `pi` npm keywords so this DSH plugin is not scraped as a Pi package on pi.dev.
+
 ## [0.1.1] - 2026-08-20
 
 ### Changed

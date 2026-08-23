@@ -28,9 +28,6 @@
     "package:dry-run": "npm pack --dry-run"
   },
   "keywords": [
-    "pi-package",
-    "pi",
-    "pi-extension",
     "session",
     "cleanup",
     "delete",
