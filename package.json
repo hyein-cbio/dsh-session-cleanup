@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-cleanup",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "DeepSeek Harness plugin for /nix and /nix quit on dsh-tui: delete the current session, start a new one, and switch the live view.",
   "type": "module",
   "main": "./lib/dsh-entry.js",
