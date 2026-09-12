@@ -2,97 +2,63 @@
 
 # dsh-session-cleanup
 
-Interactive session cleanup for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+`/nix` for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) on **dsh-tui**.
 
-Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup), ported to DSH so sessions can be listed and removed through official host services instead of Pi JSONL files.
+Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup).
 
 </div>
 
 ## What this is
 
-This is a **DSH plugin**, verified on the `pi-tui` and `dsh-tui` profiles. It is inspired by MasuRii's Pi extension, but it is not a drop-in Pi package.
+A **DSH plugin** for **dsh-tui only**. It does not list sessions and it does not replace `/resume`.
 
-[dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) · 一个为 dsh-TUI 生态打造的插件
+`pi-tui` and the web profile are not supported.
 
 On DSH it:
 
-- lists sessions with `sessionPersistence.listSnapshots()` + `locate()`
-- deletes through the host cleanup chain: stop / flush / detach, then the session directory, projection cache, workspace accounting, and pi2dsh sidecar
-- sends the session directory to **Trash on macOS**, and uses `rm -rf` on other platforms
+- **`/nix`** — deletes the current session, starts a new one, and switches the live view to it
+- **`/nix quit`** — deletes the current session and exits DSH
 
-Deletion is the whole session directory (and sidecar), not a single `session.jsonl.zstd`. The leftover Pi trash/unlink path refuses those DSH artifacts so it cannot leave a hole in persistence.
+Deletion is the whole session directory (and sidecar), not a single `session.jsonl.zstd`. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared.
 
-## Supported TUIs
-
-| Profile | Package | Notes |
-|---|---|---|
-| `pi-tui` | [dsh-pi-tui](https://www.npmjs.com/package/dsh-pi-tui) | Original verification target |
-| `dsh-tui` | [@deepseek-harness-tui/dsh-tui](https://www.npmjs.com/package/@deepseek-harness-tui/dsh-tui) | Claude Code-style TUI; `/nix quit` covers delete-current-and-exit, which that TUI does not do itself |
-
-The web profile is not a target. It already has a dedicated session-delete plugin.
+dsh-tui's `/new` and `/resume` delete keep the previous log. `/nix` is the destructive counterpart.
 
 ## Installation
 
 ```bash
-dsh plugin --profile pi-tui add dsh-session-cleanup
 dsh plugin --profile dsh-tui add dsh-session-cleanup
 ```
 
-From this repo, or a local checkout, the package must ship compiled JS (`lib/dsh-entry.js`):
+From this repo:
 
 ```bash
 npm run build
-dsh plugin --profile pi-tui add file:$PWD
-# or
 dsh plugin --profile dsh-tui add file:$PWD
 ```
 
 Restart the profile. Confirm it loaded:
 
 ```bash
-dsh --profile pi-tui --dump-config | grep session-cleanup
 dsh --profile dsh-tui --dump-config | grep session-cleanup
-dsh --profile pi-tui    # or: dsh --profile dsh-tui
+dsh --profile dsh-tui
 ```
 
 ## Commands
 
 | Command | Arguments | Description |
 |---------|-----------|-------------|
-| `/session-cleanup` | — | List orphaned sessions (cwd directory is gone) |
-| `/session-cleanup orphaned` | — | Same as default |
-| `/session-cleanup current` | — | Sessions from the current working directory |
-| `/session-cleanup all` | — | All persisted sessions |
-| `/session-cleanup delete` | `<id...>` | Delete those session ids after confirmation |
-| `/session-cleanup help` | — | Usage |
-| `/nix` | — | Create a new DSH session, then delete the current one |
-| `/nix agent` | `[preset]` | Same, with a selected or named agent preset |
+| `/nix` | — | Delete the current session, start a new one, switch the live view |
 | `/nix quit` | — | Delete the current session and exit DSH |
-| `/nix help` | — | `/nix` usage |
+| `/nix help` | — | Usage |
 
-With a `userQuestions` service (both `pi-tui` and `dsh-tui` mount one), `/session-cleanup` opens a multi-select + confirm flow. Without one, it prints the list and you delete by id.
+Both destructive commands ask for confirmation when `userQuestions` is mounted (dsh-tui does).
 
-TUI `/` menus show the argument grammar in the command description. After-space completions (`orphaned`, `quit`, …) need a host-side `argumentHint` hook and are not wired yet.
-
-## `/nix` on DSH
-
-`/nix` is destructive and asks for confirmation.
-
-- **`/nix`** creates a new session with `ctx.agents.create` (or `ctx.sessions.create`) using the current cwd and preset, then deletes the previous session.
-- **`/nix agent [preset]`** does the same with a DSH agent preset. Without `[preset]`, it opens a picker.
-- **`/nix quit`** deletes the current session, disposes the root fiber, and `process.exit(0)`.
-
-DSH has no host-level “current session pointer”. After `/nix`, the TUI may keep showing the old conversation until you resume the new id:
-
-```text
-dsh --profile pi-tui --resume <new-id>
-dsh --profile dsh-tui --resume <new-id>
-```
+`/nix` needs dsh-tui's scene switch (`channel.newSession()`). On any other profile it refuses rather than leaving you on a deleted conversation. Use `/nix quit` to delete and exit.
 
 ## Safety
 
-1. **Active session excluded** from the cleanup list
-2. **Confirm before delete**
+1. **Confirm before delete**
+2. **Switch first** — `/nix` starts and adopts the new session before the old directory is removed
 3. **macOS Trash** for session directories; other platforms permanently remove them
 4. **Cleanup order** — disk/log removal is confirmed before workspace accounting is stripped
 5. **Both id spellings** — `<uuid>` and `session-<uuid>`
@@ -105,13 +71,11 @@ npm run test     # test suite
 npm run check    # build + test
 ```
 
-Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`. That graph does not import Pi packages.
-
-Stock **pi2dsh** (remote main) is enough for this plugin. A patched pi2dsh is only needed if you load the leftover Pi extension path instead of the native DSH commands.
+Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`.
 
 ## Attribution
 
-Command names, scopes, and the `/nix` idea come from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) (MIT © MasuRii). The DSH port uses DeepSeek Harness persistence, workspace accounting, and agent presets.
+The `/nix` idea comes from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) (MIT © MasuRii). The DSH port uses DeepSeek Harness persistence, workspace accounting, and dsh-tui's live session switch.
 
 ## License
 

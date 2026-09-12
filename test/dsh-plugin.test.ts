@@ -4,7 +4,7 @@ import test from "node:test";
 import sessionCleanupExtension from "../src/index.js";
 import { apply, dshPluginApplied, inject, name } from "../src/dsh/plugin.js";
 
-test("apply registers /session-cleanup and /nix and disposes the applied flag", async () => {
+test("apply registers /nix and disposes the applied flag", async () => {
   assert.equal(name, "dsh-session-cleanup");
   assert.deepEqual(inject, ["commands"]);
 
@@ -34,14 +34,13 @@ test("apply registers /session-cleanup and /nix and disposes the applied flag", 
   });
 
   assert.equal(dshPluginApplied(), true);
-  assert.deepEqual(registered, ["session-cleanup", "nix"]);
-  const cleanupHelp = await handlers.get("session-cleanup")!({ rawInput: "help" });
-  assert.match(cleanupHelp.text ?? "", /Usage: \/session-cleanup/);
+  assert.deepEqual(registered, ["nix"]);
   const nixHelp = await handlers.get("nix")!({ rawInput: "help" });
   assert.match(nixHelp.text ?? "", /Usage: \/nix/);
+  assert.doesNotMatch(nixHelp.text ?? "", /session-cleanup/);
 
   effectCleanup?.();
-  assert.equal(disposed, 2);
+  assert.equal(disposed, 1);
   assert.equal(dshPluginApplied(), false);
 });
 
@@ -78,7 +77,7 @@ test("Pi extension skips command registration after the DSH plugin is applied", 
       },
     } as never);
 
-    assert.deepEqual(commands, ["dsh:session-cleanup", "dsh:nix"]);
+    assert.deepEqual(commands, ["dsh:nix"]);
   } finally {
     reset?.();
     assert.equal(dshPluginApplied(), false);

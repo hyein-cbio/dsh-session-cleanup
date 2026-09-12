@@ -4,6 +4,13 @@
 
 ### Changed
 - Dropped the `pi-package`, `pi-extension`, and `pi` npm keywords so this DSH plugin is not scraped as a Pi package on pi.dev.
+- Narrowed the DSH plugin to `/nix` and `/nix quit`. `/session-cleanup` and `/nix agent` are no longer registered.
+- `/nix` now starts the new session through dsh-tui's live switch (`channel.newSession()`), then deletes the previous session. The live view follows the new session.
+- Session deletion no longer calls `sessionPersistence.listSnapshots()` / `locate()`, which 0.1.5 removed from the public persistence API.
+
+### Removed
+- Interactive `/session-cleanup` listing and `/nix agent` from the native DSH command surface.
+- `pi-tui` profile support. This plugin targets `dsh-tui` only, and no longer ships a Pi `extensions` entry.
 
 ## [0.1.1] - 2026-08-20
 

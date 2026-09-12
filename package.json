@@ -1,7 +1,7 @@
 {
   "name": "dsh-session-cleanup",
   "version": "0.1.1",
-  "description": "DeepSeek Harness plugin for interactive session cleanup and /nix on pi-tui and dsh-tui, inspired by pi-session-cleanup.",
+  "description": "DeepSeek Harness plugin for /nix and /nix quit on dsh-tui: delete the current session, start a new one, and switch the live view.",
   "type": "module",
   "main": "./lib/dsh-entry.js",
   "exports": {
@@ -9,7 +9,6 @@
   },
   "files": [
     "lib",
-    "index.ts",
     "src",
     "config/config.example.json",
     "cordis.patch.yml",
@@ -31,8 +30,6 @@
     "session",
     "cleanup",
     "delete",
-    "pi-coding-agent",
-    "pi-tui",
     "dsh-tui",
     "session-management",
     "tui",
@@ -52,15 +49,6 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  },
-  "pi": {
-    "extensions": [
-      "./index.ts"
-    ]
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.74.0 || ^0.75.0 || ^0.78.0 || ^0.79.0 || ^0.80.0",
-    "@earendil-works/pi-tui": "^0.74.0 || ^0.75.0 || ^0.78.0 || ^0.79.0 || ^0.80.0"
   },
   "repository": {
     "type": "git",

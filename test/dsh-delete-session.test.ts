@@ -156,33 +156,35 @@ test("deleteDshSession is 404 when nothing exists to clean", async () => {
 });
 
 test("deleteDshSession is 500 when trash leaves the session directory", async () => {
-  const sessionDir = "/tmp/dsh-still-there";
-  await assert.rejects(
-    () =>
-      deleteDshSession(
-        {
-          get(name: string) {
-            if (name === "sessionPersistence") {
-              return {
-                listSnapshots: async () => [{ header: { id: sessionId, cwd: "/work" } }],
-                locate: () => ({ kind: "jsonl", path: `${sessionDir}/session.jsonl.zstd` }),
-              };
-            }
-            return undefined;
+  const root = mkdtempSync(join(tmpdir(), "dsh-cleanup-stuck-"));
+  const previousHome = process.env.DSH_HOME;
+  process.env.DSH_HOME = root;
+  const sessionDir = join(root, "sessions", "--work--", sessionId);
+  mkdirSync(sessionDir, { recursive: true });
+  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "x");
+
+  try {
+    await assert.rejects(
+      () =>
+        deleteDshSession(
+          { get: () => undefined },
+          sessionId,
+          {
+            existsDir: () => true,
+            removePath: async () => ({ ok: false, error: "trash full" }),
           },
-        },
-        sessionId,
-        {
-          existsDir: () => true,
-          removePath: async () => ({ ok: false, error: "trash full" }),
-        },
-      ),
-    (error: unknown) =>
-      error instanceof DshDeleteError
-      && error.status === 500
-      && error.message.includes("could not be removed")
-      && error.message.includes("trash full"),
-  );
+        ),
+      (error: unknown) =>
+        error instanceof DshDeleteError
+        && error.status === 500
+        && error.message.includes("could not be removed")
+        && error.message.includes("trash full"),
+    );
+  } finally {
+    if (previousHome === undefined) delete process.env.DSH_HOME;
+    else process.env.DSH_HOME = previousHome;
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("deleteDshSession continues when cancel/flush throw and detaches via store.delete", async () => {

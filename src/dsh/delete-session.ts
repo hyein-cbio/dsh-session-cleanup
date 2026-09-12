@@ -1,12 +1,11 @@
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { getErrorMessage } from "../error-utils.js";
 import { removeSessionArtifact } from "../trash.js";
 import { optionalService, type DshHostContext } from "./host.js";
 import { isSessionId, sessionIdVariants } from "./ids.js";
-import type { DshSessionHeader } from "./list-sessions.js";
 
 export class DshDeleteError extends Error {
   readonly status: number;
@@ -27,13 +26,8 @@ export interface DshDeleteResult {
   sidecarRemoved: boolean;
 }
 
-interface SessionPersistenceLike {
-  listSnapshots(signal?: AbortSignal): Promise<Array<{ header: DshSessionHeader }>>;
-  locate(meta: DshSessionHeader): { kind: string; path: string } | undefined;
-}
-
 interface LiveSessionLike {
-  header?: DshSessionHeader;
+  header?: { id: string };
 }
 
 interface SessionsServiceLike {
@@ -112,46 +106,10 @@ function findSessionDirsByScan(sessionId: string): string[] {
 }
 
 export async function locateSessionDirs(
-  ctx: DshHostContext,
+  _ctx: DshHostContext,
   sessionId: string,
 ): Promise<string[]> {
-  const dirs = new Set<string>();
-  const persistence = optionalService<SessionPersistenceLike>(ctx, "sessionPersistence");
-  const sessions = optionalService<SessionsServiceLike>(ctx, "sessions");
-
-  const headers: DshSessionHeader[] = [];
-  for (const variant of sessionIdVariants(sessionId)) {
-    const live = sessions?.get?.(variant);
-    if (live?.header) {
-      headers.push(live.header);
-    }
-  }
-
-  if (persistence) {
-    try {
-      const snapshots = await persistence.listSnapshots();
-      for (const snapshot of snapshots) {
-        if (sessionIdVariants(sessionId).includes(String(snapshot.header.id))) {
-          headers.push(snapshot.header);
-        }
-      }
-    } catch {
-      // Fall back to directory scan below.
-    }
-
-    for (const header of headers) {
-      const location = persistence.locate(header);
-      if (location?.path) {
-        dirs.add(dirname(location.path));
-      }
-    }
-  }
-
-  for (const scanned of findSessionDirsByScan(sessionId)) {
-    dirs.add(scanned);
-  }
-
-  return [...dirs];
+  return findSessionDirsByScan(sessionId);
 }
 
 function sidecarPaths(sessionId: string): string[] {

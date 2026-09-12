@@ -26,6 +26,14 @@ declare module "node:assert/strict" {
     equal(actual: unknown, expected: unknown, message?: string): void;
     deepEqual(actual: unknown, expected: unknown, message?: string): void;
     ok(value: unknown, message?: string): void;
+    match(actual: string, expected: RegExp, message?: string): void;
+    doesNotMatch(actual: string, expected: RegExp, message?: string): void;
+    rejects(
+      block: Promise<unknown> | (() => Promise<unknown>),
+      error?: unknown,
+      message?: string,
+    ): Promise<void>;
+    throws(block: () => unknown, error?: unknown, message?: string): void;
   };
 
   export default assert;
@@ -49,14 +57,19 @@ declare module "node:child_process" {
 }
 
 declare module "node:fs" {
-  export function appendFileSync(path: string, data: string, encoding: string): void;
+  export function appendFileSync(path: string, data: string, encoding?: string): void;
   export function existsSync(path: string): boolean;
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   export function mkdtempSync(prefix: string): string;
   export function readFileSync(path: string, encoding: string): string;
   export function readdirSync(path: string): string[];
+  export function readdirSync(
+    path: string,
+    options: { withFileTypes: true },
+  ): Array<{ name: string; isDirectory(): boolean }>;
+  export function renameSync(oldPath: string, newPath: string): void;
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
-  export function writeFileSync(path: string, data: string, encoding: string): void;
+  export function writeFileSync(path: string, data: string, encoding?: string): void;
 }
 
 declare module "node:fs/promises" {
