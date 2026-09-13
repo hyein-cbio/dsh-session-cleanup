@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-12
+
 ### Changed
 - Dropped the `pi-package`, `pi-extension`, and `pi` npm keywords so this DSH plugin is not scraped as a Pi package on pi.dev.
 - Narrowed the DSH plugin to `/nix` and `/nix quit`. `/session-cleanup` and `/nix agent` are no longer registered.
