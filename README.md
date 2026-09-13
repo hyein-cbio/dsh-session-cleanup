@@ -4,9 +4,14 @@
 
 `/nix` for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) on **dsh-tui**.
 
+[![npm](https://img.shields.io/npm/v/dsh-session-cleanup.svg)](https://www.npmjs.com/package/dsh-session-cleanup)
+[![GitHub release](https://img.shields.io/github/v/release/hyein-cbio/dsh-session-cleanup.svg)](https://github.com/hyein-cbio/dsh-session-cleanup/releases/latest)
+
 Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup).
 
 </div>
+
+Latest DSH release is **0.2.0** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0). See [CHANGELOG.md](CHANGELOG.md).
 
 ## What this is
 

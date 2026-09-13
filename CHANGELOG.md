@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased]
+Current DSH release is **0.2.0**
+([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0) ·
+[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.2.0)).
+
+Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
 ## [0.2.0] - 2026-09-12
 
@@ -37,6 +41,10 @@ First DSH release. This is a port of [pi-session-cleanup](https://github.com/Mas
 
 ### Changed
 - Clarify that deletion is the whole session directory and sidecar, not a single `session.jsonl.zstd` file.
+
+## Inherited from pi-session-cleanup
+
+These entries shipped on the original Pi package before the DSH port. They are kept for history only.
 
 ## [1.2.0] - 2026-07-03
 
@@ -84,3 +92,9 @@ First DSH release. This is a port of [pi-session-cleanup](https://github.com/Mas
 - Refactored command/picker module names for clarity
 - Upgraded custom picker UI with bordered modal layout, title/status/help lines, and responsive overlay sizing
 - Added production-ready package metadata and README
+
+[0.2.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0
+[0.1.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.1.1
+[0.1.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.1.0
+[1.2.0]: https://github.com/MasuRii/pi-session-cleanup/releases/tag/v1.2.0
+[1.1.4]: https://github.com/MasuRii/pi-session-cleanup/releases/tag/v1.1.4
