@@ -8,7 +8,6 @@ export type QuitShutdownReason = "quit" | "reload" | "new" | "resume" | "fork";
 
 interface ArmedQuitDeletion {
   sessionFile: string;
-  ctx: ExtensionContext;
   deleteSync: (sessionPath: string) => DeleteSessionResult;
 }
 
@@ -33,14 +32,11 @@ function disarmQuitDeletion(): void {
   process.off("exit", runArmedQuitDeletion);
 }
 
-function notifyQuitDeletionFailure(ctx: ExtensionContext, error: string): void {
+function reportQuitDeletionFailure(error: string): void {
   try {
-    ctx.ui.notify(
-      `Failed to delete the current session during shutdown: ${error}`,
-      "warning",
-    );
+    process.stderr.write(`Failed to delete the current session during shutdown: ${error}\n`);
   } catch {
-    // The TUI is already stopped by the time process exit runs.
+    // stderr may already be closed when the process exit listener runs.
   }
 }
 
@@ -55,10 +51,10 @@ export function runArmedQuitDeletion(): void {
   try {
     const deleteResult = armed.deleteSync(armed.sessionFile);
     if (!deleteResult.ok) {
-      notifyQuitDeletionFailure(armed.ctx, deleteResult.error);
+      reportQuitDeletionFailure(deleteResult.error);
     }
   } catch (error) {
-    notifyQuitDeletionFailure(armed.ctx, getErrorMessage(error));
+    reportQuitDeletionFailure(getErrorMessage(error));
   }
 }
 
@@ -86,7 +82,6 @@ export async function flushScheduledSessionDeletionForQuit(
   disarmQuitDeletion();
   armedQuitDeletion = {
     sessionFile,
-    ctx,
     deleteSync: options.deleteSync ?? deleteSessionFileSync,
   };
   process.on("exit", runArmedQuitDeletion);

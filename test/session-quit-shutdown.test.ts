@@ -113,7 +113,13 @@ test("non-quit shutdown does not consume a scheduled quit deletion", async () =>
 });
 
 test("process-exit deletion reports a synchronous delete failure", async () => {
-  const { ctx, notifications } = createShutdownContext();
+  const { ctx } = createShutdownContext();
+  const chunks: string[] = [];
+  const originalWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    chunks.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
 
   try {
     scheduleSessionDeletionForQuit("session.jsonl");
@@ -122,10 +128,9 @@ test("process-exit deletion reports a synchronous delete failure", async () => {
     });
     runArmedQuitDeletion();
 
-    assert.equal(notifications.length, 1);
-    assert.equal(notifications[0]?.type, "warning");
-    assert.equal(notifications[0]?.message.includes("disk full"), true);
+    assert.equal(chunks.some((chunk) => chunk.includes("disk full")), true);
   } finally {
+    process.stderr.write = originalWrite;
     clearScheduledSessionDeletionForQuit();
   }
 });
