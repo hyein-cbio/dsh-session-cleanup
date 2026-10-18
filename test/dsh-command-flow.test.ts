@@ -27,7 +27,7 @@ function persistenceHost(options: {
           ],
           locate: (header: { id: string }) => ({
             kind: "jsonl",
-            path: join(options.sessionDir ?? "/tmp", `session-${header.id}`, "session.jsonl.zstd"),
+            path: join(options.sessionDir ?? "/tmp", `session-${header.id}`, "session.v4.jsonl.zstd"),
           }),
         };
       }
@@ -145,7 +145,7 @@ test("DSH command pick+confirm deletes the chosen session", async () => {
   const sessionDir = join(root, "sessions", "--work--", `session-${orphanId}`);
   mkdirSync(trashRoot, { recursive: true });
   mkdirSync(sessionDir, { recursive: true });
-  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "x");
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "x");
   process.env.DSH_HOME = root;
   process.env.DSH_SESSION_TRASH_DIR = trashRoot;
 

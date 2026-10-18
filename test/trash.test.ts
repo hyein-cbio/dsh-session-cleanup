@@ -22,7 +22,7 @@ test("trashPath never unlinks: it moves the target into the user trash", async (
   const sessionDir = join(root, "session-dir");
   mkdirSync(trashDir);
   mkdirSync(sessionDir);
-  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "keep-me");
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "keep-me");
 
   const previous = process.env.DSH_SESSION_TRASH_DIR;
   process.env.DSH_SESSION_TRASH_DIR = trashDir;
@@ -33,7 +33,7 @@ test("trashPath never unlinks: it moves the target into the user trash", async (
     assert.equal(result.ok, true);
     assert.equal(existsSync(sessionDir), false);
     assert.equal(
-      readFileSync(join(trashDir, "session-dir", "session.jsonl.zstd"), "utf8"),
+      readFileSync(join(trashDir, "session-dir", "session.v4.jsonl.zstd"), "utf8"),
       "keep-me",
     );
   } finally {

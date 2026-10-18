@@ -23,7 +23,6 @@ export interface DshDeleteResult {
   dirRemoved: boolean;
   projRemoved: boolean;
   workspaceRemoved: boolean;
-  sidecarRemoved: boolean;
 }
 
 interface LiveSessionLike {
@@ -110,14 +109,6 @@ export async function locateSessionDirs(
   sessionId: string,
 ): Promise<string[]> {
   return findSessionDirsByScan(sessionId);
-}
-
-function sidecarPaths(sessionId: string): string[] {
-  const dir = join(dshHome(), "pi2dsh", "agent", "session-entries");
-  return sessionIdVariants(sessionId).map((id) => {
-    const safe = id.replace(/[^a-zA-Z0-9._-]+/gu, "_");
-    return join(dir, `${safe}.jsonl`);
-  });
 }
 
 async function stopAgentIfRunning(ctx: DshHostContext, sessionId: string): Promise<boolean> {
@@ -314,19 +305,6 @@ async function stripStorageDomains(
   return { projRemoved, workspaceRemoved };
 }
 
-async function trashSidecars(
-  sessionId: string,
-  hooks: DshDeleteHooks,
-): Promise<boolean> {
-  const exists = hooks.existsDir ?? existsSync;
-  const present = sidecarPaths(sessionId).filter((sidecar) => exists(sidecar));
-  if (present.length === 0) {
-    return false;
-  }
-  const result = await trashTargets(present, hooks);
-  return result.removed;
-}
-
 export async function deleteDshSession(
   ctx: DshHostContext,
   sessionId: string,
@@ -350,7 +328,6 @@ export async function deleteDshSession(
   const firstTrash = await trashTargets(firstDirs, hooks);
 
   const projOnly = await stripStorageDomains(ctx, trimmed, { workspace: false });
-  const sidecarRemoved = await trashSidecars(trimmed, hooks);
 
   firstDirs = await locateSessionDirs(ctx, trimmed);
   const secondTrash = await trashTargets(firstDirs, hooks);
@@ -372,7 +349,7 @@ export async function deleteDshSession(
   const projRemoved = projOnly.projRemoved || workspaceStorage.projRemoved;
   const workspaceRemoved = workspaceStorage.workspaceRemoved;
 
-  if (!dirRemoved && !projRemoved && !workspaceRemoved && !sidecarRemoved && !detached) {
+  if (!dirRemoved && !projRemoved && !workspaceRemoved && !detached) {
     throw new DshDeleteError(`session not found: ${trimmed}`, 404);
   }
 
@@ -383,7 +360,6 @@ export async function deleteDshSession(
     dirRemoved,
     projRemoved,
     workspaceRemoved,
-    sidecarRemoved,
   };
 }
 

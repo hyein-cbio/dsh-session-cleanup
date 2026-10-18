@@ -9,11 +9,11 @@ export interface DeleteSessionFileOptions extends TrashPathOptions {
 }
 
 function isDshArtifactPath(sessionPath: string): boolean {
-  if (sessionPath.endsWith(".jsonl.zstd")) {
+  const normalized = sessionPath.replace(/\\/g, "/");
+  if (normalized.endsWith(".jsonl.zstd") || normalized.endsWith("/session.lock")) {
     return true;
   }
-  const normalized = sessionPath.replace(/\\/g, "/");
-  return normalized.includes("/sessions/") && normalized.endsWith("/session.jsonl");
+  return normalized.includes("/sessions/") && /\/session(?:\.v\d+)?\.jsonl$/u.test(normalized);
 }
 
 /**

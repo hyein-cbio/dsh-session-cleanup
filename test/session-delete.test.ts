@@ -108,7 +108,7 @@ test("returns final unlink failure with trash provider hints", async () => {
 });
 
 test("refuses to trash or unlink a DSH session artifact", async () => {
-  const result = await deleteSessionFile("/tmp/session/session.jsonl.zstd", {
+  const result = await deleteSessionFile("/tmp/sessions/work/session.v4.jsonl.zstd", {
     spawn: async () => {
       throw new Error("trash should not run");
     },

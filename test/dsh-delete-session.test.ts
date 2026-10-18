@@ -15,18 +15,15 @@ test("deleteDshSession rejects invalid ids", async () => {
   );
 });
 
-test("deleteDshSession removes locate() dir, cache, workspace, and sidecar", async () => {
+test("deleteDshSession removes the session directory, cache, and workspace", async () => {
   const root = mkdtempSync(join(tmpdir(), "dsh-cleanup-del-"));
   const previousHome = process.env.DSH_HOME;
   process.env.DSH_HOME = root;
 
   const sessionDir = join(root, "sessions", "--work--", `session-${sessionId}`);
   mkdirSync(sessionDir, { recursive: true });
-  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "not-parsed");
-
-  const sidecar = join(root, "pi2dsh", "agent", "session-entries", `${sessionId}.jsonl`);
-  mkdirSync(join(sidecar, ".."), { recursive: true });
-  writeFileSync(sidecar, "{}\n");
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "not-parsed");
+  writeFileSync(join(sessionDir, "session.lock"), "");
 
   const proj = new Map<string, unknown>([[sessionId, { rows: {} }]]);
   const workspaceRec = {
@@ -47,7 +44,7 @@ test("deleteDshSession removes locate() dir, cache, workspace, and sidecar", asy
           ],
           locate: () => ({
             kind: "jsonl",
-            path: join(sessionDir, "session.jsonl.zstd"),
+            path: join(sessionDir, "session.v4.jsonl.zstd"),
           }),
         };
       }
@@ -134,7 +131,6 @@ test("deleteDshSession removes locate() dir, cache, workspace, and sidecar", asy
     assert.equal(outcome.dirRemoved, true);
     assert.equal(outcome.projRemoved, true);
     assert.equal(outcome.workspaceRemoved, true);
-    assert.equal(outcome.sidecarRemoved, true);
     assert.equal(cancelled, true);
     assert.equal(flushed, true);
     assert.equal(detached, true);
@@ -161,7 +157,7 @@ test("deleteDshSession is 500 when trash leaves the session directory", async ()
   process.env.DSH_HOME = root;
   const sessionDir = join(root, "sessions", "--work--", sessionId);
   mkdirSync(sessionDir, { recursive: true });
-  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "x");
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "x");
 
   try {
     await assert.rejects(
@@ -193,7 +189,7 @@ test("deleteDshSession continues when cancel/flush throw and detaches via store.
   process.env.DSH_HOME = root;
   const sessionDir = join(root, "sessions", "--work--", sessionId);
   mkdirSync(sessionDir, { recursive: true });
-  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "x");
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "x");
   let storeDeleted = false;
 
   try {

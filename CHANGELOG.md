@@ -1,10 +1,18 @@
 # Changelog
 
-Current DSH release is **0.2.0**
-([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0) ·
-[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.2.0)).
+Current DSH release is **0.2.1**
+([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1) ·
+[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.2.1)).
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
+
+## [0.2.1] - 2026-10-18
+
+### Removed
+- Stopped looking for a `~/.dsh/pi2dsh` sidecar. This plugin is not based on pi2dsh. Deletion is the session directory under `~/.dsh/sessions`.
+
+### Changed
+- Docs and fixtures name the current log `session.vN.jsonl.zstd` (this host writes `session.v4.jsonl.zstd`), not `session.jsonl.zstd`.
 
 ## [0.2.0] - 2026-09-12
 
@@ -93,6 +101,7 @@ These entries shipped on the original Pi package before the DSH port. They are k
 - Upgraded custom picker UI with bordered modal layout, title/status/help lines, and responsive overlay sizing
 - Added production-ready package metadata and README
 
+[0.2.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1
 [0.2.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0
 [0.1.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.1.1
 [0.1.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.1.0

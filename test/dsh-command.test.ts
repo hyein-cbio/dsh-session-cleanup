@@ -19,7 +19,7 @@ function createListHost() {
           ],
           locate: () => ({
             kind: "jsonl",
-            path: join("/tmp", "session.jsonl.zstd"),
+            path: join("/tmp", "session.v4.jsonl.zstd"),
           }),
         };
       }
@@ -54,7 +54,7 @@ test("DSH command delete <id> removes a located session after confirm", async ()
   process.env.DSH_SESSION_TRASH_DIR = trashRoot;
   const sessionDir = join(root, "sessions", "--work--", `session-${orphanId}`);
   mkdirSync(sessionDir, { recursive: true });
-  writeFileSync(join(sessionDir, "session.jsonl.zstd"), "x");
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "x");
 
   const ctx = {
     get(name: string): unknown {
@@ -65,7 +65,7 @@ test("DSH command delete <id> removes a located session after confirm", async ()
           ],
           locate: () => ({
             kind: "jsonl",
-            path: join(sessionDir, "session.jsonl.zstd"),
+            path: join(sessionDir, "session.v4.jsonl.zstd"),
           }),
         };
       }

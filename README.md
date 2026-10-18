@@ -11,7 +11,7 @@ Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup).
 
 </div>
 
-Latest DSH release is **0.2.0** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0). See [CHANGELOG.md](CHANGELOG.md).
+Latest DSH release is **0.2.1** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1). See [CHANGELOG.md](CHANGELOG.md).
 
 ## What this is
 
@@ -24,7 +24,7 @@ On DSH it:
 - **`/nix`** — deletes the current session, starts a new one, and switches the live view to it
 - **`/nix quit`** — deletes the current session and exits DSH
 
-Deletion is the whole session directory (and sidecar), not a single `session.jsonl.zstd`. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared.
+Deletion is the whole session directory under `~/.dsh/sessions/<workspace>/` (`session-<uuid>` or `<uuid>`), including its `session.vN.jsonl.zstd` log and `session.lock`. There is no separate sidecar. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared.
 
 dsh-tui's `/new` and `/resume` delete keep the previous log. `/nix` is the destructive counterpart.
 

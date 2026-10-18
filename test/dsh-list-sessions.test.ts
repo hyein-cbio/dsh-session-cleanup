@@ -28,7 +28,7 @@ test("listDshSessions uses locate() and filters orphaned/current/active/archived
           listSnapshots: async () => headers.map((header) => ({ header })),
           locate: (header: { id: string }) => ({
             kind: "jsonl",
-            path: join("/tmp/dsh-sessions", `session-${header.id}`, "session.jsonl.zstd"),
+            path: join("/tmp/dsh-sessions", `session-${header.id}`, "session.v4.jsonl.zstd"),
           }),
         };
       }
@@ -48,7 +48,7 @@ test("listDshSessions uses locate() and filters orphaned/current/active/archived
       currentSessionId: liveId,
     });
     assert.deepEqual(orphaned.map((session) => session.id), [orphanId]);
-    assert.equal(orphaned[0]?.path.endsWith("session.jsonl.zstd"), true);
+    assert.equal(orphaned[0]?.path.endsWith("session.v4.jsonl.zstd"), true);
 
     const current = await listDshSessions(ctx, {
       scope: "current",
@@ -85,7 +85,7 @@ test("listDshSessions throws without persistence and skips unlocated rows", asyn
               { header: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", createdAt: 1, cwd: "/gone" } },
             ],
             locate: (header: { id: string }) =>
-              header.id === id ? undefined : { kind: "jsonl", path: `/tmp/${header.id}/session.jsonl.zstd` },
+              header.id === id ? undefined : { kind: "jsonl", path: `/tmp/${header.id}/session.v4.jsonl.zstd` },
           };
         }
         if (name === "agents") {
@@ -111,7 +111,7 @@ test("listDshSessions current scope with no cwd yields an empty list", async () 
             listSnapshots: async () => [
               { header: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", createdAt: 1, cwd: "/work" } },
             ],
-            locate: () => ({ kind: "jsonl", path: "/tmp/x/session.jsonl.zstd" }),
+            locate: () => ({ kind: "jsonl", path: "/tmp/x/session.v4.jsonl.zstd" }),
           };
         }
         return undefined;

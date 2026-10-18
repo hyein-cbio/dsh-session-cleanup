@@ -79,7 +79,7 @@ async function confirmDelete(
     preview,
     hidden > 0 ? `- …and ${hidden} more` : "",
     running > 0 ? `\n${running} selected session(s) are running and will be stopped.` : "",
-    "On macOS this sends the DSH session directory and sidecar to Trash. On other platforms it permanently removes them. Then it clears projection cache and workspace accounting.",
+    "On macOS this sends the DSH session directory to Trash. On other platforms it permanently removes it. Then it clears projection cache and workspace accounting.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -141,7 +141,6 @@ function formatDeleteOutcome(
     outcome.dirRemoved ? "log" : null,
     outcome.projRemoved ? "cache" : null,
     outcome.workspaceRemoved ? "workspace" : null,
-    outcome.sidecarRemoved ? "sidecar" : null,
     outcome.stopped ? "stopped" : null,
   ].filter(Boolean);
   return `- ${session.id.slice(0, 8)} (${session.title}): ${parts.join(", ") || "removed"}`;
