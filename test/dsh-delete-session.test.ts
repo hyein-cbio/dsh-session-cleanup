@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { deleteDshSession, DshDeleteError } from "../src/dsh/delete-session.js";
 
@@ -250,6 +252,114 @@ test("deleteDshSession continues when cancel/flush throw and detaches via store.
   } finally {
     if (previousHome === undefined) delete process.env.DSH_HOME;
     else process.env.DSH_HOME = previousHome;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("deleteDshSession completes when nothing else holds the event loop", async () => {
+  const root = mkdtempSync(join(tmpdir(), "dsh-cleanup-loop-"));
+  const sessionDir = join(root, "sessions", "--work--", sessionId);
+  mkdirSync(sessionDir, { recursive: true });
+  writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "x");
+  const marker = join(root, "finished.json");
+  const moduleUrl = pathToFileURL(
+    join(fileURLToPath(import.meta.url), "..", "..", "src", "dsh", "delete-session.js"),
+  ).href;
+  const script = `
+    import { existsSync, writeFileSync } from "node:fs";
+    import { deleteDshSession } from ${JSON.stringify(moduleUrl)};
+
+    const sessionId = ${JSON.stringify(sessionId)};
+    const sessionDir = ${JSON.stringify(sessionDir)};
+    const marker = ${JSON.stringify(marker)};
+    process.env.DSH_HOME = ${JSON.stringify(root)};
+    process.exitCode = 1;
+
+    let archived = [sessionId];
+    const outcome = await deleteDshSession({
+      get(name) {
+        if (name !== "storageDomain") return undefined;
+        return {
+          get(domain) {
+            if (domain !== "workspace") return undefined;
+            return {
+              table() {
+                return {
+                  get() {
+                    return undefined;
+                  },
+                  delete() {},
+                  entries() {
+                    return [];
+                  },
+                };
+              },
+              global: {
+                get: () => ({ archivedSessionIds: archived }),
+                set: async (value) => {
+                  archived = value.archivedSessionIds;
+                },
+              },
+            };
+          },
+        };
+      },
+    }, sessionId);
+
+    if (
+      outcome.dirRemoved
+      && outcome.workspaceRemoved
+      && archived.length === 0
+      && !existsSync(sessionDir)
+    ) {
+      writeFileSync(marker, JSON.stringify(outcome));
+      process.exitCode = 0;
+    }
+  `;
+
+  const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+  let stderr = "";
+  child.stderr?.on("data", (chunk: unknown) => {
+    stderr += String(chunk);
+  });
+
+  try {
+    const status = await new Promise<number | null>((resolve, reject) => {
+      let settled = false;
+      let timer: { unref?(): void } | undefined;
+      const finish = (code: number | null): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timer) {
+          clearTimeout(timer);
+        }
+        resolve(code);
+      };
+      timer = setTimeout(() => {
+        child.kill();
+        finish(null);
+      }, 10_000);
+      child.on("error", (error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timer) {
+          clearTimeout(timer);
+        }
+        reject(error);
+      });
+      child.on("close", (code) => finish(code));
+    });
+
+    assert.equal(status, 0, stderr);
+    assert.equal(existsSync(marker), true);
+    assert.equal(existsSync(sessionDir), false);
+  } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });

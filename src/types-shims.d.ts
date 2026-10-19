@@ -1,7 +1,22 @@
 declare namespace NodeJS {
+  type Platform =
+    | "aix"
+    | "android"
+    | "darwin"
+    | "freebsd"
+    | "haiku"
+    | "linux"
+    | "openbsd"
+    | "sunos"
+    | "win32"
+    | "cygwin"
+    | "netbsd";
+
   interface Process {
     env: Record<string, string | undefined>;
+    execPath: string;
     platform: string;
+    cwd(): string;
     exit(code?: number): never;
     stdout: {
       columns?: number;
@@ -25,7 +40,7 @@ declare module "node:assert/strict" {
   const assert: {
     equal(actual: unknown, expected: unknown, message?: string): void;
     deepEqual(actual: unknown, expected: unknown, message?: string): void;
-    ok(value: unknown, message?: string): void;
+    ok(value: unknown, message?: string): asserts value;
     match(actual: string, expected: RegExp, message?: string): void;
     doesNotMatch(actual: string, expected: RegExp, message?: string): void;
     rejects(
@@ -69,6 +84,7 @@ declare module "node:fs" {
   ): Array<{ name: string; isDirectory(): boolean }>;
   export function renameSync(oldPath: string, newPath: string): void;
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
+  export function statSync(path: string): { isDirectory(): boolean };
   export function writeFileSync(path: string, data: string, encoding?: string): void;
 }
 
@@ -100,6 +116,7 @@ declare module "node:test" {
 
 declare module "node:url" {
   export function fileURLToPath(url: unknown): string;
+  export function pathToFileURL(path: string): { href: string };
 }
 
 declare module "@earendil-works/pi-tui" {

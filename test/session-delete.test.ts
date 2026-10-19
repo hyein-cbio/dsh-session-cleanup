@@ -101,6 +101,9 @@ test("returns final unlink failure with trash provider hints", async () => {
   });
 
   assert.equal(result.ok, false);
+  if (result.ok) {
+    throw new Error("expected unlink failure");
+  }
   assert.equal(result.method, "unlink");
   assert.match(result.error, /permission denied/);
   assert.match(result.error, /trash: trash failed/);
@@ -118,5 +121,8 @@ test("refuses to trash or unlink a DSH session artifact", async () => {
   });
 
   assert.equal(result.ok, false);
+  if (result.ok) {
+    throw new Error("expected DSH artifact refusal");
+  }
   assert.match(result.error, /DSH session artifact/);
 });
