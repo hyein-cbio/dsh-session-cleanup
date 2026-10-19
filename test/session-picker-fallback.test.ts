@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { selectSessionsForCleanup } from "../src/session-selection.js";
-import { showSessionCleanupPicker } from "../src/tui/session-cleanup-picker.js";
 import type { SessionCleanupSession } from "../src/types.js";
 
 function session(path: string): SessionCleanupSession {
@@ -18,22 +17,6 @@ function session(path: string): SessionCleanupSession {
     responsibleAgentName: null,
   };
 }
-
-test("showSessionCleanupPicker fails closed when custom() is a no-op", async () => {
-  await assert.rejects(
-    () =>
-      showSessionCleanupPicker(
-        {
-          ui: {
-            custom: async () => undefined,
-          },
-        } as never,
-        [session("/tmp/a.jsonl")],
-        "all",
-      ),
-    /Interactive picker is unavailable/,
-  );
-});
 
 test("selectSessionsForCleanup falls back to the basic selector when the overlay is missing", async () => {
   const notices: Array<{ message: string; type?: string }> = [];

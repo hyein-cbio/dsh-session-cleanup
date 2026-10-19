@@ -119,25 +119,12 @@ declare module "node:url" {
   export function pathToFileURL(path: string): { href: string };
 }
 
-declare module "@earendil-works/pi-tui" {
+declare module "@earendil-works/pi-coding-agent" {
   export interface Component {
     render(width: number): string[];
     handleInput(data: string): void;
     invalidate?(): void;
   }
-
-  export function matchesKey(data: string, key: string): boolean;
-  export function truncateToWidth(
-    text: string,
-    width: number,
-    ellipsis?: string,
-    trimWhitespace?: boolean,
-  ): string;
-  export function visibleWidth(text: string): number;
-}
-
-declare module "@earendil-works/pi-coding-agent" {
-  import type { Component } from "@earendil-works/pi-tui";
 
   export function getAgentDir(): string;
 

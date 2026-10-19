@@ -2,7 +2,6 @@ import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
 import { buildSessionSelectionLabel } from "./session-format.js";
 import { getErrorMessage } from "./error-utils.js";
-import { showSessionCleanupPicker } from "./tui/session-cleanup-picker.js";
 import type {
   SessionCleanupSession,
   SessionScope,
@@ -161,6 +160,7 @@ export async function selectSessionsForCleanup(
   scope: SessionScope,
 ): Promise<SessionSelectionResult> {
   try {
+    const { showSessionCleanupPicker } = await import("./tui/session-cleanup-picker.js");
     return await showSessionCleanupPicker(ctx, sessions, scope);
   } catch (error) {
     ctx.ui.notify(
