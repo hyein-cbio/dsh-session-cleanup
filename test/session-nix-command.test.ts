@@ -56,7 +56,6 @@ function createCommandContext(options: MockCommandContextOptions = {}) {
         notifications.push({ message, type });
       },
       select: async (): Promise<string | undefined> => undefined,
-      custom: async (): Promise<void> => undefined,
     },
     newSession: async (newSessionOptions?: NewSessionOptions): Promise<{ cancelled: boolean }> => {
       newSessionCalls += 1;

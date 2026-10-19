@@ -2,33 +2,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export type IconModePreference = "auto" | "nerd" | "fallback";
-
 export interface SessionCleanupConfig {
   enabled: boolean;
-  iconMode: IconModePreference;
 }
 
 const DEFAULT_CONFIG: SessionCleanupConfig = {
   enabled: true,
-  iconMode: "auto",
 };
 
 function resolveExtensionRoot(): string {
   return join(dirname(fileURLToPath(import.meta.url)), "..");
-}
-
-function parseIconMode(value: unknown): IconModePreference | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "auto" || normalized === "nerd" || normalized === "fallback") {
-    return normalized;
-  }
-
-  return null;
 }
 
 function readConfigFile(configPath: string): Record<string, unknown> | null {
@@ -77,10 +60,5 @@ export function loadSessionCleanupConfig(): SessionCleanupConfig {
   }
 
   const enabled = typeof raw.enabled === "boolean" ? raw.enabled : DEFAULT_CONFIG.enabled;
-  const iconMode = parseIconMode(raw.iconMode) ?? DEFAULT_CONFIG.iconMode;
-
-  return {
-    enabled,
-    iconMode,
-  };
+  return { enabled };
 }

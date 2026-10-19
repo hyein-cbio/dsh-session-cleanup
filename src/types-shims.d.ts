@@ -120,12 +120,6 @@ declare module "node:url" {
 }
 
 declare module "@earendil-works/pi-coding-agent" {
-  export interface Component {
-    render(width: number): string[];
-    handleInput(data: string): void;
-    invalidate?(): void;
-  }
-
   export function getAgentDir(): string;
 
   export interface SessionInfo {
@@ -153,24 +147,10 @@ declare module "@earendil-works/pi-coding-agent" {
     getSessionName(): string | undefined;
   }
 
-  export interface Theme {
-    fg?(color: string, text: string): string;
-    bold?(text: string): string;
-  }
-
   export interface ExtensionUIContext {
     select(title: string, options: string[]): Promise<string | undefined>;
     confirm(title: string, message: string): Promise<boolean>;
     notify(message: string, type?: "info" | "warning" | "error"): void;
-    custom<T>(
-      factory: (
-        tui: { requestRender(): void },
-        theme: Theme,
-        keybindings: unknown,
-        done: (result?: T) => void,
-      ) => Component,
-      options?: Record<string, unknown>,
-    ): Promise<T>;
   }
 
   export interface ExtensionContext {

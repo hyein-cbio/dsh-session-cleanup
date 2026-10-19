@@ -7,7 +7,9 @@ import test from "node:test";
 import {
   buildAgentSelectionMenu,
   discoverSelectableAgents,
+  resolveTargetAgentForSessionNix,
 } from "../src/agent-target.js";
+import { createAgentTestFixture } from "./helpers/fixtures.js";
 import { withEnv } from "./helpers/env.js";
 
 test("buildAgentSelectionMenu marks the current agent and preserves labels", () => {
@@ -61,5 +63,75 @@ test("discoverSelectableAgents reads nearest project agents and lets them overri
     });
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("resolveTargetAgentForSessionNix selects an agent through the basic selector", async () => {
+  const fixture = createAgentTestFixture("pi-session-cleanup-agent-select-");
+  const notices: Array<{ message: string; type?: string }> = [];
+  const titles: string[] = [];
+
+  try {
+    await withEnv({ PI_CODING_AGENT_DIR: fixture.runtimeDir }, async () => {
+      const selected = await resolveTargetAgentForSessionNix(
+        {
+          cwd: fixture.cwd,
+          hasUI: true,
+          ui: {
+            notify(message: string, type?: string) {
+              notices.push({ message, type });
+            },
+            select: async (title: string, labels: string[]) => {
+              titles.push(title);
+              return labels.find((label) => label.includes("release-agent"));
+            },
+          },
+        } as never,
+        undefined,
+        "code",
+      );
+
+      assert.equal(selected?.name, "release-agent");
+      assert.equal(titles[0], "Select a target agent");
+      assert.equal(notices.length, 0);
+
+      const cancelled = await resolveTargetAgentForSessionNix(
+        {
+          cwd: fixture.cwd,
+          hasUI: true,
+          ui: {
+            notify(message: string, type?: string) {
+              notices.push({ message, type });
+            },
+            select: async () => undefined,
+          },
+        } as never,
+        undefined,
+        null,
+      );
+      assert.equal(cancelled, null);
+
+      const headless = await resolveTargetAgentForSessionNix(
+        {
+          cwd: fixture.cwd,
+          hasUI: false,
+          ui: {
+            notify(message: string, type?: string) {
+              notices.push({ message, type });
+            },
+            select: async () => {
+              throw new Error("basic selector should not run without a UI");
+            },
+          },
+        } as never,
+        undefined,
+        null,
+      );
+      assert.equal(headless, undefined);
+      assert.equal(notices.at(-1)?.type, "warning");
+      assert.match(notices.at(-1)?.message ?? "", /non-interactive mode/);
+    });
+  } finally {
+    fixture.cleanup();
   }
 });

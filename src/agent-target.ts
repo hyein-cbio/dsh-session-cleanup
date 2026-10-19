@@ -343,14 +343,16 @@ export async function resolveTargetAgentForSessionNix(
     return undefined;
   }
 
-  const { showAgentTargetPicker } = await import("./tui/agent-target-picker.js");
-  const selectedAgentName = await showAgentTargetPicker(ctx, agents, currentAgentName);
-
-  if (!selectedAgentName) {
+  const menu = buildAgentSelectionMenu(agents, currentAgentName);
+  const selectedLabel = await ctx.ui.select("Select a target agent", menu.labels);
+  if (!selectedLabel) {
     return null;
   }
 
-  const selectedAgent = agents.find((agent) => agent.name === selectedAgentName);
+  const selectedAgentName = menu.valueByLabel.get(selectedLabel);
+  const selectedAgent = selectedAgentName
+    ? agents.find((agent) => agent.name === selectedAgentName)
+    : undefined;
   if (!selectedAgent) {
     ctx.ui.notify("Unknown agent selection. Please try again.", "warning");
     return undefined;

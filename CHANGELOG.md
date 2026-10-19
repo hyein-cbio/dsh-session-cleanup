@@ -6,6 +6,12 @@ Current DSH release is **0.2.1**
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
+## [Unreleased]
+
+### Removed
+- Interactive overlay pickers for session cleanup and target-agent selection. Both flows use the basic selector (`ctx.ui.select`).
+- Picker-only `iconMode` config. The `enabled` toggle is unchanged.
+
 ## [0.2.1] - 2026-10-18
 
 ### Removed

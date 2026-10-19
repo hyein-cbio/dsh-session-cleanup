@@ -1,12 +1,17 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
 import { buildSessionSelectionLabel } from "./session-format.js";
-import { getErrorMessage } from "./error-utils.js";
 import type {
   SessionCleanupSession,
   SessionScope,
   SessionSelectionResult,
 } from "./types.js";
+
+const SCOPE_PROMPT: Record<SessionScope, string> = {
+  orphaned: "orphaned sessions",
+  current: "current-directory sessions",
+  all: "sessions",
+};
 
 interface ConfirmAction {
   kind: "confirm";
@@ -81,18 +86,17 @@ function buildMenu(
   return { labels, actionsByLabel };
 }
 
-async function selectSessionsWithLegacyMenu(
+async function selectSessionsWithBasicSelector(
   ctx: ExtensionCommandContext,
   sessions: readonly SessionCleanupSession[],
+  scope: SessionScope,
 ): Promise<SessionSelectionResult> {
   const selectedPaths = new Set<string>();
+  const prompt = `Select ${SCOPE_PROMPT[scope]} to delete (toggle multiple, then confirm)`;
 
   while (true) {
     const menu = buildMenu(sessions, selectedPaths);
-    const selectedLabel = await ctx.ui.select(
-      "Select sessions to delete (toggle multiple, then confirm)",
-      menu.labels,
-    );
+    const selectedLabel = await ctx.ui.select(prompt, menu.labels);
 
     if (!selectedLabel) {
       return {
@@ -159,14 +163,5 @@ export async function selectSessionsForCleanup(
   sessions: readonly SessionCleanupSession[],
   scope: SessionScope,
 ): Promise<SessionSelectionResult> {
-  try {
-    const { showSessionCleanupPicker } = await import("./tui/session-cleanup-picker.js");
-    return await showSessionCleanupPicker(ctx, sessions, scope);
-  } catch (error) {
-    ctx.ui.notify(
-      `Interactive picker failed (${getErrorMessage(error)}). Falling back to basic selector.`,
-      "warning",
-    );
-    return selectSessionsWithLegacyMenu(ctx, sessions);
-  }
+  return selectSessionsWithBasicSelector(ctx, sessions, scope);
 }
