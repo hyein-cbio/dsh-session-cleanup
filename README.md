@@ -2,7 +2,7 @@
 
 # dsh-session-cleanup
 
-`/nix` for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) on **dsh-tui**.
+`/nix` for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), requiring [**dsh-TUI**](https://github.com/ccch1mneyyy/dsh-TUI) by ccch1mneyyy.
 
 [![npm](https://img.shields.io/npm/v/dsh-session-cleanup.svg)](https://www.npmjs.com/package/dsh-session-cleanup)
 [![GitHub release](https://img.shields.io/github/v/release/hyein-cbio/dsh-session-cleanup.svg)](https://github.com/hyein-cbio/dsh-session-cleanup/releases/latest)
@@ -15,9 +15,11 @@ Latest DSH release is **0.2.1** on [npm](https://www.npmjs.com/package/dsh-sessi
 
 ## What this is
 
-A **DSH plugin** for **dsh-tui only**. It does not list sessions and it does not replace `/resume`.
+A **DSH plugin** for **[ccch1mneyyy/dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) only**, using its **DSH backend**. It does not list sessions and it does not replace `/resume`.
 
-`pi-tui` and the web profile are not supported.
+**Runtime requirement:** the third-party `@deepseek-harness-tui/dsh-tui` package must be installed in the `dsh-tui` profile. This plugin relies on its TUI services and live session switch; official DeepSeek Harness alone is not sufficient.
+
+`pi-tui`, the web profile, and dsh-TUI's Claude/Codex backends are not supported.
 
 On DSH it:
 
@@ -30,7 +32,12 @@ dsh-tui's `/new` and `/resume` delete keep the previous log. `/nix` is the destr
 
 ## Installation
 
+First install DeepSeek Harness and [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI#quick-start) following dsh-TUI's setup instructions. This package does not install dsh-TUI automatically.
+
+Ensure the required TUI package is installed in the same profile, then add this plugin:
+
 ```bash
+dsh plugin --profile dsh-tui add @deepseek-harness-tui/dsh-tui
 dsh plugin --profile dsh-tui add dsh-session-cleanup
 ```
 
@@ -80,7 +87,7 @@ Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`.
 
 ## Attribution
 
-The `/nix` idea comes from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) (MIT © MasuRii). The DSH port uses DeepSeek Harness persistence, workspace accounting, and dsh-tui's live session switch.
+The `/nix` idea comes from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) (MIT © MasuRii). The DSH port uses [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) persistence and workspace accounting, and depends on [ccch1mneyyy/dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) for the TUI services and live session switch.
 
 ## License
 
