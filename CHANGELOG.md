@@ -9,7 +9,7 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 ## [Unreleased]
 
 ### Compatibility
-- DeepSeek Harness `dsh-v0.2.2-alpha.2` (`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`) and dsh-TUI `v0.17.0` (`103834cb1000a84569a71646fec7162f18a058c8`) are **not supported**. On Linux, the Harness source build rejects installing that dsh-TUI checkout before anything is installed. See [TESTING.md](TESTING.md). macOS Trash behavior was not tested.
+- DeepSeek Harness `dsh-v0.2.2-alpha.2` (`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`) and dsh-TUI `v0.17.0` (`103834cb1000a84569a71646fec7162f18a058c8`) are **not supported**. On Linux, a full Harness source install (SheetJS tarball included) still rejects that dsh-TUI checkout before anything is installed. See [TESTING.md](TESTING.md). macOS Trash behavior was not tested.
 
 ### Removed
 - Interactive overlay pickers for session cleanup and target-agent selection. Both flows use the basic selector (`ctx.ui.select`).

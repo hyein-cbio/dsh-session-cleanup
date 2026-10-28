@@ -14,6 +14,8 @@ Bootstrap attempt. There was no earlier verified pair, so this is not a regressi
 
 Plugin commit under test: `ffdf4b4cb99b755c3777f007f18abbdcdfc9a727`. Node `v24.22.2`. Kernel `Linux 6.12.94+ x86_64`.
 
+A later rebuild on the same commits installed Harness with its lockfile intact, including the SheetJS tarball. The host still rejected the dsh-TUI checkout. That rebuild does not change the result below.
+
 ### Harness `dsh-v0.2.2-alpha.2`
 
 - Repository: `deepseek-ai/deepseek-harness`
@@ -85,16 +87,26 @@ On commit `ffdf4b4cb99b755c3777f007f18abbdcdfc9a727`, with Node `v24.22.2`:
 
 `test/upstream-compat.test.ts` classifies installer logs only. It does not talk to Harness or dsh-TUI. After that file was added, `npm run check` reported 75 passed, 0 failed, 0 skipped. Those three extra tests are not the integration assertions above.
 
+The same three commands were run again on this report update, with Node `v24.22.2`: `npm ci` exit 0, `npm run check` exit 0 (75 passed, 0 failed, 0 skipped), `npm pack --dry-run` exit 0. Package version stayed `0.2.1`.
+
 Unit tests do not prove upstream compatibility.
 
 ## Source builds
 
-Harness, in the disposable checkout of `f3803c96974ad4a94195fb97e5c637e9c2a3afe3`:
+Harness, in the disposable checkout of `f3803c96974ad4a94195fb97e5c637e9c2a3afe3`. HEAD matched that commit. Node `v24.22.2`. pnpm `11.28.5`.
 
-- `pnpm install --frozen-lockfile` with pnpm `11.28.5` (exit 0) after removing the document-preview devDependency tarball `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`. That host is outside this environment's egress. The package is not part of the CLI that performed the version check. No Harness package was taken from npm as a substitute for this commit.
-- `pnpm exec tsx scripts/compile-referenced-projects.ts host-libraries` (exit 0). `dsh --version` printed `0.2.2-alpha.2`.
+- `pnpm install --frozen-lockfile` (exit 0). The lockfile was not edited. `xlsx@0.20.3` was installed from `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` into `packages/client/ui-sidebar-documentpreview`. No Harness package was taken from npm as a substitute for this commit.
+- `pnpm exec tsx scripts/compile-referenced-projects.ts host-libraries` (exit 0). This is the checked-in host-library step. `apps/cli/lib/bin.js` printed `0.2.2-alpha.2`.
 
-dsh-TUI was not compiled. The supported install path rejected the checkout from its manifest, so there is no runtime module path to record for the TUI.
+Loaded from that checkout, not from a global install:
+
+- `@deepseek-ai/dsh-app-boot` → `packages/boot/app-boot/lib/index.js` (`0.2.2-alpha.2`)
+- `@deepseek-ai/dsh-plugin-manager` → `packages/boot/plugin-manager/lib/index.js`
+- `@deepseek-ai/dsh-base` → `packages/bundle/base/lib/index.js`
+
+dsh-TUI was not compiled. `dsh plugin add` of the checkout reads `package.json` and rejects it before installation. The checkout has no `engines.dsh`. Its 36 `@deepseek-ai/dsh-*` peers stop at `0.2.1-rc.3` and none name `0.2.2`. Compiling it would require either those peers or a registry copy of Harness `0.2.1-rc.3`. Neither was used. `allow-version` was not used. There is no TUI runtime module path to record.
+
+The isolated profile `package.json` kept `"dependencies": {}` and the base bundle `@deepseek-ai/dsh-base`. Nothing from either upstream was installed from a registry.
 
 ## Suggested fix (unverified)
 
