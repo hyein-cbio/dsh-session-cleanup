@@ -295,12 +295,25 @@ async function stripStorageDomains(
     try {
       const globalState = workspace.global;
       if (globalState && typeof globalState.get === "function" && typeof globalState.set === "function") {
-        const state = globalState.get() as { archivedSessionIds?: unknown } | undefined;
+        const state = globalState.get() as {
+          archivedSessionIds?: unknown;
+          pinnedSessionIds?: unknown;
+        } | undefined;
         const archived = state?.archivedSessionIds;
-        if (Array.isArray(archived) && archived.some((id) => variants.includes(String(id)))) {
+        const pinned = state?.pinnedSessionIds;
+        const nextArchived = Array.isArray(archived)
+          ? archived.filter((id) => !variants.includes(String(id)))
+          : undefined;
+        const nextPinned = Array.isArray(pinned)
+          ? pinned.filter((id) => !variants.includes(String(id)))
+          : undefined;
+        const archivedHit = Array.isArray(archived) && nextArchived !== undefined && nextArchived.length !== archived.length;
+        const pinnedHit = Array.isArray(pinned) && nextPinned !== undefined && nextPinned.length !== pinned.length;
+        if (archivedHit || pinnedHit) {
           await globalState.set({
             ...state,
-            archivedSessionIds: archived.filter((id) => !variants.includes(String(id))),
+            ...(archivedHit ? { archivedSessionIds: nextArchived } : {}),
+            ...(pinnedHit ? { pinnedSessionIds: nextPinned } : {}),
           });
           workspaceRemoved = true;
         }

@@ -33,6 +33,7 @@ test("deleteDshSession removes the session directory, cache, and workspace", asy
   };
   const workspaces = new Map<string, unknown>([["ws-1", workspaceRec]]);
   let archived = [sessionId];
+  let pinned = [sessionId, "pin-keep"];
   let cancelled = false;
   let flushed = false;
   let detached = false;
@@ -103,9 +104,10 @@ test("deleteDshSession removes the session directory, cache, and workspace", asy
                   entries: () => workspaces.entries(),
                 }),
                 global: {
-                  get: () => ({ archivedSessionIds: archived }),
-                  set: async (value: { archivedSessionIds: string[] }) => {
-                    archived = value.archivedSessionIds;
+                  get: () => ({ archivedSessionIds: archived, pinnedSessionIds: pinned }),
+                  set: async (value: { archivedSessionIds?: string[]; pinnedSessionIds?: string[] }) => {
+                    if (value.archivedSessionIds) archived = value.archivedSessionIds;
+                    if (value.pinnedSessionIds) pinned = value.pinnedSessionIds;
                   },
                 },
               };
@@ -139,6 +141,7 @@ test("deleteDshSession removes the session directory, cache, and workspace", asy
     assert.equal(proj.has(sessionId), false);
     assert.deepEqual((workspaces.get("ws-1") as { sessionIds: string[] }).sessionIds, ["keep-me"]);
     assert.deepEqual(archived, []);
+    assert.deepEqual(pinned, ["pin-keep"]);
   } finally {
     if (previousHome === undefined) delete process.env.DSH_HOME;
     else process.env.DSH_HOME = previousHome;
