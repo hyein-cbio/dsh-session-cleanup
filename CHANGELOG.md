@@ -8,8 +8,12 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 
 ## [Unreleased]
 
+### Fixed
+- Deleting a session removes its id from workspace `pinnedSessionIds` as well as `archivedSessionIds`. Other pinned and archived ids stay.
+
 ### Compatibility
-- DeepSeek Harness `dsh-v0.2.2-alpha.2` (`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`) and dsh-TUI `v0.17.0` (`103834cb1000a84569a71646fec7162f18a058c8`) are **not supported**. On Linux, a full Harness source install (SheetJS tarball included) still rejects that dsh-TUI checkout before anything is installed. See [TESTING.md](TESTING.md). macOS Trash behavior was not tested.
+- Verified on Linux with dsh-TUI `v0.17.0` (`103834cb1000a84569a71646fec7162f18a058c8`) and the Harness line that commit names, `0.2.1-rc.3` (`1f81c047fc48fa190a683e469daa699857e9afe8`). Live `/nix` and `/nix quit` checks passed. See [TESTING.md](TESTING.md).
+- DeepSeek Harness `dsh-v0.2.2-alpha.2` (`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`) with that same dsh-TUI commit is **not supported**. The host rejects the TUI checkout before anything is installed. macOS Trash behavior was not tested.
 
 ### Removed
 - Interactive overlay pickers for session cleanup and target-agent selection. Both flows use the basic selector (`ctx.ui.select`).

@@ -26,7 +26,7 @@ On DSH it:
 - **`/nix`** — deletes the current session, starts a new one, and switches the live view to it
 - **`/nix quit`** — deletes the current session and exits DSH
 
-Deletion is the whole session directory under `~/.dsh/sessions/<workspace>/` (`session-<uuid>` or `<uuid>`), including its `session.vN.jsonl.zstd` log and `session.lock`. There is no separate sidecar. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared.
+Deletion is the whole session directory under `~/.dsh/sessions/<workspace>/` (`session-<uuid>` or `<uuid>`), including its `session.vN.jsonl.zstd` log and `session.lock`. There is no separate sidecar. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared, including that session's entries in `archivedSessionIds` and `pinnedSessionIds`.
 
 dsh-tui's `/new` and `/resume` delete keep the previous log. `/nix` is the destructive counterpart.
 

@@ -1,12 +1,74 @@
 # Upstream compatibility
 
-This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) with its DSH backend. Official Harness alone is not enough. GitHub Releases are the only upstream release source. There is no verified pair.
+This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) with its DSH backend. Official Harness alone is not enough. GitHub Releases are the only upstream release source.
 
 Results below are Linux x86_64 only. They say nothing about macOS Trash.
 
-## Matrix
+## Verified pair
 
-Bootstrap attempt. There was no earlier verified pair, so this is not a regression against a known-good baseline.
+dsh-TUI `v0.17.0` names Harness `0.2.1-rc.3` as `UPSTREAM_VALIDATED_VERSION` in `src/dsh-adapter/contract.ts` on commit `103834cb1000a84569a71646fec7162f18a058c8`. That list ends at `0.2.1-rc.3`. Harness `0.2.1-rc.4` and `0.2.2-alpha.2` are newer releases and are outside that list. The live checks below use only the named pair.
+
+| Cell | Harness | dsh-TUI | Result |
+| --- | --- | --- | --- |
+| Line named by dsh-TUI `v0.17.0` | `0.2.1-rc.3` tag `dsh-v0.2.1-rc.3` | `0.17.0` tag `v0.17.0` | **VERIFIED** on Linux |
+
+Node `v22.23.4`. Kernel `Linux 6.12.94+ x86_64`. Package version stayed `0.2.1`.
+
+### Harness `dsh-v0.2.1-rc.3`
+
+- Repository: `deepseek-ai/deepseek-harness`
+- Release id: `422003676`
+- Tag: `dsh-v0.2.1-rc.3`
+- Commit: `1f81c047fc48fa190a683e469daa699857e9afe8`
+- Published: `2026-10-23T15:26:39Z`
+- URL: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.3
+- CLI manifest: `@deepseek-ai/dsh` `0.2.1-rc.3`
+- Checkout HEAD matched the commit. `apps/cli/lib/bin.js` is the process the live suite spawned.
+
+### dsh-TUI `v0.17.0`
+
+- Repository: `ccch1mneyyy/dsh-TUI`
+- Release id: `422656740`
+- Tag: `v0.17.0` (annotated tag object `b1719950a2929c7d3df20be7b4817a178c6c1fb7`)
+- Commit: `103834cb1000a84569a71646fec7162f18a058c8`
+- Published: `2026-10-24T10:14:57Z`
+- URL: https://github.com/ccch1mneyyy/dsh-TUI/releases/tag/v0.17.0
+- Manifest: `@deepseek-harness-tui/dsh-tui` `0.17.0`
+- Checkout HEAD matched the commit.
+
+### Live `/nix` checks
+
+Isolated `HOME` / `DSH_HOME` / XDG tree. The host was `node apps/cli/lib/bin.js --profile dsh-tui` from the Harness checkout, driven through a PTY. Slash commands only. No model calls. The screen showed `dsh-tui v0.17.0` and `dsh-core v0.2.1-rc.3`.
+
+| Check | Result |
+| --- | --- |
+| Packed plugin loads and `/nix help` works | pass |
+| Cancelling confirmation keeps the original session and the control session | pass |
+| Confirmed `/nix` switches to a different live session and removes the old directory during that switch | pass |
+| Projection cache row for the old session is gone | pass |
+| Workspace `sessionIds` drop the old id and keep the control id | pass |
+| `pinnedSessionIds` and `archivedSessionIds` drop the deleted id | pass |
+| The new session accepts `/nix help` | pass |
+| `/nix quit` exits with code 0 and removes the adopted session directory | pass |
+| Restart does not recreate either deleted session | pass |
+| The unrelated control session directory remains | pass |
+
+27 passed, 0 failed. `/nix quit` was observed as process exit code 0. The exit listener was armed when the PTY was spawned.
+
+This run also fixed deletion so a removed session is taken out of `pinnedSessionIds`. The unit test keeps a second pinned id in place.
+
+On this branch, with Node `v22.23.4`:
+
+| Command | Exit |
+| --- | --- |
+| `npm run check` | 0 (75 passed, 0 failed, 0 skipped) |
+| `npm pack --dry-run` | 0, package `dsh-session-cleanup@0.2.1` |
+
+Unit tests do not replace the live checks above. The three classifier tests only read installer logs.
+
+## Earlier matrix
+
+Bootstrap attempt against the newest published Harness release. That pair is not the line dsh-TUI `v0.17.0` validates. It is not a regression against the verified pair above. The verified pair was recorded after this attempt.
 
 | Cell | Harness | dsh-TUI | Result |
 | --- | --- | --- | --- |
