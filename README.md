@@ -83,7 +83,7 @@ npm run test     # test suite
 npm run check    # build + test
 ```
 
-Upstream compatibility records live in [TESTING.md](TESTING.md). No Harness and dsh-TUI pair is verified. Harness `dsh-v0.2.2-alpha.2` with dsh-TUI `v0.17.0` is not supported.
+Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.3` with dsh-TUI `v0.17.0` is verified on Linux only. Harness `dsh-v0.2.2-alpha.2` with dsh-TUI `v0.17.0` is not supported.
 
 Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`.
 
