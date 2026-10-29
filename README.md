@@ -26,7 +26,7 @@ On DSH it:
 - **`/nix`** — deletes the current session, starts a new one, and switches the live view to it
 - **`/nix quit`** — deletes the current session and exits DSH
 
-Deletion is the whole session directory under `~/.dsh/sessions/<workspace>/` (`session-<uuid>` or `<uuid>`), including its `session.vN.jsonl.zstd` log and `session.lock`. There is no separate sidecar. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared.
+Deletion is the whole session directory under `~/.dsh/sessions/<workspace>/` (`session-<uuid>` or `<uuid>`), including its `session.vN.jsonl.zstd` log and `session.lock`. There is no separate sidecar. After dsh-tui has switched away, the previous session is stopped/flushed/detached, the directory goes to **Trash on macOS** (`rm -rf` elsewhere), then projection cache and workspace accounting are cleared, including that session's entries in `archivedSessionIds` and `pinnedSessionIds`.
 
 dsh-tui's `/new` and `/resume` delete keep the previous log. `/nix` is the destructive counterpart.
 
@@ -82,6 +82,8 @@ npm run build    # emit lib/dsh-entry.js for DSH
 npm run test     # test suite
 npm run check    # build + test
 ```
+
+Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.3` with dsh-TUI `v0.17.0` is verified on Linux only. Harness `dsh-v0.2.2-alpha.2` with dsh-TUI `v0.17.0` is not supported.
 
 Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`.
 
