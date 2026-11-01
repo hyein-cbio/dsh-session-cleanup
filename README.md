@@ -80,8 +80,10 @@ Both destructive commands ask for confirmation when `userQuestions` is mounted (
 ```bash
 npm run build    # emit lib/dsh-entry.js for DSH
 npm run test     # test suite
-npm run check    # build + test
+npm run check    # build + TypeScript/Python tests
 ```
+
+[GitHub Actions CI](.github/workflows/ci.yml) runs package checks and source-built live PTY checks on Ubuntu and macOS for pull requests, pushes to `main`, and manual runs. Live jobs upload build logs and verification evidence even on failure; package checks alone do not establish upstream compatibility.
 
 Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.5` with dsh-TUI `v0.18.0` is verified on Linux only. That TUI release names `0.2.1-rc.5` as `UPSTREAM_VALIDATED_VERSION`. Harness `dsh-v0.2.2-alpha.2` is outside that list and was not tested with `v0.18.0`. The older pair, Harness `0.2.1-rc.3` with dsh-TUI `v0.17.0`, stays verified on Linux. Harness `dsh-v0.2.2-alpha.2` with dsh-TUI `v0.17.0` is not supported.
 

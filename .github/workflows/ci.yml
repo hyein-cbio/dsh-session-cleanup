@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Package checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.4'
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: npm run check
+      - run: npm pack --dry-run
+      - run: git diff --exit-code && git diff --check
+
+  live:
+    name: Live upstream PTY (${{ matrix.os }})
+    needs: check
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    env:
+      # Keep these in sync with the compatibility record and driver preflight.
+      DSH_COMPAT_HARNESS_ROOT: ${{ github.workspace }}/.ci-upstreams/harness
+      DSH_COMPAT_TUI_ROOT: ${{ github.workspace }}/.ci-upstreams/tui
+    steps:
+      - name: Configure disposable sandbox and evidence directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/dsh-compat-results"
+          echo "DSH_COMPAT_HOME=$RUNNER_TEMP/dsh-compat-home" >> "$GITHUB_ENV"
+          echo "DSH_COMPAT_LOG=$RUNNER_TEMP/dsh-compat-results" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: b830ec950faba0a46dda564be3e2d854afed94f1
+          path: .ci-upstreams/harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ccch1mneyyy/dsh-TUI
+          ref: 1d0d946f459da5149aba64cc6cc0ef7da304053c
+          path: .ci-upstreams/tui
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.4'
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: '11.28.5'
+          run_install: false
+      - name: Build sources and install an isolated profile
+        run: python3 scripts/prepare-upstream-ci.py
+      - name: Run real upstream PTY checks
+        run: python3 scripts/live-upstream-tui.py
+      - name: Upload compatibility evidence (including failures)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upstream-compat-${{ matrix.os }}-${{ github.run_attempt }}
+          path: ${{ env.DSH_COMPAT_LOG }}
+          if-no-files-found: error
+          retention-days: 14
