@@ -6,3 +6,4 @@ dist/
 coverage/
 config.json
 *.tmp
+__pycache__/
