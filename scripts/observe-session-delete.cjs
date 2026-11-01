@@ -42,6 +42,7 @@ childProcess.spawn = function (command, args, ...rest) {
   const observed = trashCommands.has(command) && Array.isArray(args)
     ? [...targets].filter(target => args.some(arg => typeof arg === "string" && (arg === target || arg.includes(JSON.stringify(target)))))
     : [];
+  if (observed.length === 0) return originalSpawn.call(this, command, args, ...rest);
   for (const target of observed) record("before-delete", target, command);
   let child;
   try {
@@ -50,10 +51,16 @@ childProcess.spawn = function (command, args, ...rest) {
     for (const target of observed) record("after-delete", target, command);
     throw error;
   }
-  // Registered before the plugin's close handler resolves its cleanup promise.
-  child.once("close", () => {
+  // The runner may continue to the next provider on error, before close.
+  // Register first so evidence is complete before either plugin handler runs.
+  let completed = false;
+  const finish = () => {
+    if (completed) return;
+    completed = true;
     for (const target of observed) record("after-delete", target, command);
-  });
+  };
+  child.once("error", finish);
+  child.once("close", finish);
   return child;
 };
 // The packed plugin uses ESM named imports from fs and child_process.

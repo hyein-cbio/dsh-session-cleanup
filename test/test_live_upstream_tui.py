@@ -144,6 +144,18 @@ class DriverTests(unittest.TestCase):
             provider.chmod(0o755)
             env["PATH"] = str(self.home) + os.pathsep + env.get("PATH", "")
             delete = f"await new Promise((resolve, reject) => {{ const p = spawn('trash', [{json.dumps(str(target))}]); p.on('error', reject); p.on('close', code => code === 0 ? resolve() : reject(new Error(String(code)))); }});"
+        elif operation == "missing-providers":
+            # Exercise the real runner: ENOENT resolves on error, before close.
+            # Keep every provider off PATH, then use the real filesystem fallback.
+            empty_bin = self.home / "empty-bin"
+            empty_bin.mkdir()
+            env["PATH"] = str(empty_bin)
+            trash = self.home / "Trash"
+            trash.mkdir()
+            env["DSH_SESSION_TRASH_DIR"] = str(trash)
+            delete = (f"const {{ trashPath }} = await import({json.dumps((ROOT / 'lib/src/trash.js').as_uri())});"
+                      f"const result = await trashPath({json.dumps(str(target))});"
+                      "if (!result.ok) throw new Error(result.error);")
         script = 'import { rmSync, renameSync, writeFileSync } from "node:fs";\nimport { spawn } from "node:child_process";\n'
         script += f"rmSync({json.dumps(str(unrelated))}, {{recursive: true}});\n"
         script += publish + delete if publish_first else delete + publish
@@ -171,6 +183,22 @@ class DriverTests(unittest.TestCase):
         self.assertFalse(target.exists())
         self.assertTrue(Path(str(target) + "-trashed").is_dir())
         self.assertEqual([e["operation"] for e in events], ["trash", "trash"])
+        self.assertTrue(driver.deletion_order_ok(events, [target], "adopted"))
+
+    def test_missing_trash_providers_complete_once_before_successful_fallback(self):
+        target, events = self.run_delete(operation="missing-providers")
+        operations = ["trash", "trash-put", "gio", "kioclient5", "kioclient", "osascript", "renameSync"]
+        self.assertFalse(target.exists())
+        self.assertEqual((self.home / "Trash" / target.name / "log.jsonl").read_text(), "{}\n")
+        # The later close events must not duplicate error completions or overlap
+        # the next provider's before-delete event.
+        self.assertEqual(len(events), 2 * len(operations))
+        for i, operation in enumerate(operations):
+            before, after = events[2 * i:2 * i + 2]
+            self.assertEqual([before["event"], after["event"]], ["before-delete", "after-delete"])
+            self.assertEqual([before["operation"], after["operation"]], [operation, operation])
+            self.assertTrue(before["exists"])
+            self.assertEqual(after["exists"], operation != "renameSync")
         self.assertTrue(driver.deletion_order_ok(events, [target], "adopted"))
 
     def test_fresh_workspace_requires_boot_and_clean_exit(self):
