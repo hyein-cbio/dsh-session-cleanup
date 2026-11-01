@@ -1,4 +1,4 @@
-"""Driver regressions, not a substitute for the Linux live upstream run."""
+"""Driver regressions, not a substitute for a real live upstream run."""
 
 import importlib.util
 import json
@@ -111,7 +111,7 @@ class DriverTests(unittest.TestCase):
         host.key.assert_called_once_with(b"\r")
         self.assertTrue(self.report.rows[-1]["ok"])
 
-    def run_delete(self, *, publish_first=True, fail=False, retry=False, other_workspace=False):
+    def run_delete(self, *, publish_first=True, fail=False, retry=False, other_workspace=False, operation="rmSync"):
         node = os.environ.get("DSH_COMPAT_NODE") or shutil.which("node")
         self.assertTrue(node, "Node is required to exercise the real deletion observer")
         target = self.home / "sessions/project/doomed"
@@ -134,7 +134,29 @@ class DriverTests(unittest.TestCase):
         delete = f"rmSync({json.dumps(str(target))}, {{recursive: {str(not fail).lower()}}});"
         if retry:
             delete = f"try {{ rmSync({json.dumps(str(target))}); }} catch {{}}" + delete
-        script = 'import { rmSync, writeFileSync } from "node:fs";\n'
+        if operation == "renameSync":
+            delete = f"renameSync({json.dumps(str(target))}, {json.dumps(str(target) + '-trashed')});"
+        elif operation == "trash-process":
+            # A local executable fixture exercises the real spawn/close boundary,
+            # without invoking Finder or depending on a desktop trash provider.
+            provider = self.home / "trash"
+            provider.write_text(f"#!{node}\nrequire('node:fs').renameSync(process.argv[2], process.argv[2] + '-trashed');\n")
+            provider.chmod(0o755)
+            env["PATH"] = str(self.home) + os.pathsep + env.get("PATH", "")
+            delete = f"await new Promise((resolve, reject) => {{ const p = spawn('trash', [{json.dumps(str(target))}]); p.on('error', reject); p.on('close', code => code === 0 ? resolve() : reject(new Error(String(code)))); }});"
+        elif operation == "missing-providers":
+            # Exercise the real runner: ENOENT resolves on error, before close.
+            # Keep every provider off PATH, then use the real filesystem fallback.
+            empty_bin = self.home / "empty-bin"
+            empty_bin.mkdir()
+            env["PATH"] = str(empty_bin)
+            trash = self.home / "Trash"
+            trash.mkdir()
+            env["DSH_SESSION_TRASH_DIR"] = str(trash)
+            delete = (f"const {{ trashPath }} = await import({json.dumps((ROOT / 'lib/src/trash.js').as_uri())});"
+                      f"const result = await trashPath({json.dumps(str(target))});"
+                      "if (!result.ok) throw new Error(result.error);")
+        script = 'import { rmSync, renameSync, writeFileSync } from "node:fs";\nimport { spawn } from "node:child_process";\n'
         script += f"rmSync({json.dumps(str(unrelated))}, {{recursive: true}});\n"
         script += publish + delete if publish_first else delete + publish
         result = subprocess.run([node, "--require", str(driver.DELETE_OBSERVER), "--input-type=module", "-e", script],
@@ -148,6 +170,81 @@ class DriverTests(unittest.TestCase):
         self.assertFalse(target.exists())
         self.assertEqual(len(events), 2)  # Unrelated deletions were not recorded.
         self.assertTrue(driver.deletion_order_ok(events, [target], "adopted"))
+
+    def test_real_trash_rename_is_observed(self):
+        target, events = self.run_delete(operation="renameSync")
+        self.assertFalse(target.exists())
+        self.assertTrue(Path(str(target) + "-trashed").is_dir())
+        self.assertEqual([e["operation"] for e in events], ["renameSync", "renameSync"])
+        self.assertTrue(driver.deletion_order_ok(events, [target], "adopted"))
+
+    def test_trash_process_close_is_recorded_before_cleanup_continues(self):
+        target, events = self.run_delete(operation="trash-process")
+        self.assertFalse(target.exists())
+        self.assertTrue(Path(str(target) + "-trashed").is_dir())
+        self.assertEqual([e["operation"] for e in events], ["trash", "trash"])
+        self.assertTrue(driver.deletion_order_ok(events, [target], "adopted"))
+
+    def test_missing_trash_providers_complete_once_before_successful_fallback(self):
+        target, events = self.run_delete(operation="missing-providers")
+        operations = ["trash", "trash-put", "gio", "kioclient5", "kioclient", "osascript", "renameSync"]
+        self.assertFalse(target.exists())
+        self.assertEqual((self.home / "Trash" / target.name / "log.jsonl").read_text(), "{}\n")
+        # The later close events must not duplicate error completions or overlap
+        # the next provider's before-delete event.
+        self.assertEqual(len(events), 2 * len(operations))
+        for i, operation in enumerate(operations):
+            before, after = events[2 * i:2 * i + 2]
+            self.assertEqual([before["event"], after["event"]], ["before-delete", "after-delete"])
+            self.assertEqual([before["operation"], after["operation"]], [operation, operation])
+            self.assertTrue(before["exists"])
+            self.assertEqual(after["exists"], operation != "renameSync")
+        self.assertTrue(driver.deletion_order_ok(events, [target], "adopted"))
+
+    def test_fresh_workspace_requires_boot_and_clean_exit(self):
+        self.workspace.unlink()
+        host = Mock()
+        host.wait_ready.return_value = True
+        def exit_host(_timeout):
+            self.workspace.write_text("{}")
+            return 0
+        host.wait_exit.side_effect = exit_host
+        with patch.object(driver, "Tui", return_value=host):
+            driver.initialize_workspace(self.report)
+        host.type_line.assert_called_once_with("/exit")
+        host.close.assert_called_once()
+        self.assertTrue(self.report.rows[-1]["ok"])
+
+    def test_existing_workspace_does_not_boot_an_extra_host(self):
+        with patch.object(driver, "Tui") as host:
+            driver.initialize_workspace(self.report)
+        host.assert_not_called()
+
+    def test_workspace_initialization_fails_if_boot_fails(self):
+        self.workspace.unlink()
+        host = Mock()
+        host.wait_ready.return_value = False
+        with patch.object(driver, "Tui", return_value=host), self.assertRaises(SystemExit):
+            driver.initialize_workspace(self.report)
+        host.close.assert_called_once()
+        host.type_line.assert_not_called()
+
+    def test_ready_dismisses_fresh_onboarding_without_credentials(self):
+        host = object.__new__(driver.Tui)
+        host.exit_code = None
+        host.seen = Mock(side_effect=[False, True, False, True])
+        host.key = Mock()
+        self.assertTrue(host.wait_ready())
+        host.key.assert_called_once_with(b"\x1b")
+
+    def test_macos_process_proof_uses_ps_and_lsof(self):
+        with patch.object(driver.sys, "platform", "darwin"), patch.object(driver.subprocess, "check_output", side_effect=[
+            "node /source/apps/cli/lib/bin.js\n", "p123\nn/source/native/system/system.node\nn/unrelated\n",
+        ]) as run:
+            proof = driver.proc_proof(123)
+        self.assertEqual(proof["cmdline"], "node /source/apps/cli/lib/bin.js")
+        self.assertEqual(proof["maps"], ["/source/native/system/system.node"])
+        self.assertEqual(run.call_count, 2)
 
     def test_deletion_before_publication_fails(self):
         target, events = self.run_delete(publish_first=False)

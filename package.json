@@ -23,7 +23,7 @@
     "pretest": "npm run test:clean",
     "test": "npx --yes -p typescript@5.7.3 tsc -p tsconfig.test.json && node --test .test-dist/test/*.test.js",
     "posttest": "npm run test:clean",
-    "test:live-driver": "python3 -m unittest discover -s test -p 'test_live_upstream_tui.py' -v",
+    "test:live-driver": "python3 -m unittest discover -s test -p 'test_*.py' -v",
     "check": "npm run lint && npm run test && npm run test:live-driver",
     "package:dry-run": "npm pack --dry-run"
   },

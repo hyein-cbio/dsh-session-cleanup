@@ -2,7 +2,24 @@
 
 This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) with its DSH backend. Official Harness alone is not enough. GitHub Releases are the only upstream release source.
 
-Results below are Linux x86_64 only. They say nothing about macOS Trash.
+The historical verified results below are Linux x86_64 only. They say nothing about macOS Trash.
+
+## GitHub Actions CI
+
+`.github/workflows/ci.yml` runs on pushes to `main`, pull requests, and manual dispatch. It does not use Pullfrog, model-provider credentials, or a paid review service. Its token has read-only repository access, and checkout credentials are not persisted.
+
+Both jobs use an independent `ubuntu-24.04` / `macos-15` matrix with `fail-fast: false`, Node `22.23.4`, and Python `3.12`:
+
+- **Package checks**: `npm ci`, `npm run check` (TypeScript tests and Python driver/bootstrap regressions), `npm pack --dry-run`, and a tracked-file/whitespace check.
+- **Live upstream PTY**: after package checks pass, check out the exact Harness and TUI commits in the compatibility record (including the TUI submodule), build the native addon and host libraries, build/pack the TUI, build/pack this plugin, and install both tarballs through the real Harness plugin manager in a new disposable HOME. `scripts/prepare-upstream-ci.py` performs this preparation, refuses an existing HOME, and exports the paths for the driver. Upstream lockfiles and compatibility gates are not bypassed. TUI installation/packing uses the hoisted linker required for its bundled dependencies.
+
+The driver initializes missing workspace storage by booting and cleanly exiting the real host. It dismisses the first-run guide and Sessions screen through Escape, without configuring credentials or making model calls. Linux process provenance uses `/proc`; macOS uses `ps` and `lsof`. Deletion evidence records actual permanent removal on Linux and real Trash provider/rename operations on macOS. The macOS check rejects permanent `rmSync` removal; headless hosts can use the plugin's filesystem Trash fallback under the disposable HOME.
+
+Each live job is bounded to 45 minutes. Build/install logs and PTY evidence are uploaded even on failure as `upstream-compat-<runner>-<attempt>` artifacts, retained for 14 days. A successful build or package-check job is **not** a live compatibility pass: require the live job to succeed, `LIVE_OK`, and `live-full.json` with no failed or skipped assertions. Failures such as a missing switch scene remain failures; the workflow does not disable the switch assertion to make CI green.
+
+Manual run after the workflow reaches the default branch: GitHub **Actions → CI → Run workflow**, or `gh workflow run ci.yml --ref main`. Inspect both OS jobs and download their artifacts. Adding this workflow does not retroactively verify either platform; record successful run URLs and platform details before updating the verified results below.
+
+During workflow development, local macOS arm64 source builds and isolated tarball installation completed with Node `26.13.0`. The real PTY run passed boot, help, cancellation, native-addon provenance, resume, and the cache-existence precondition, but failed confirmed `/nix`: the TUI reported `dsh-tui has no nix switch scene registered.` This is a failing integration result, not a macOS compatibility pass. Hosted Node `22.23.4` results must be checked separately.
 
 ## Verified pair
 
@@ -73,17 +90,17 @@ macOS Trash was not tested.
 
 ### Re-running the live harness
 
-The script expects Linux, the already built Harness CLI, the isolated profile, and these variables: `DSH_COMPAT_NODE`, `DSH_COMPAT_BIN`, `DSH_COMPAT_HOME`, `DSH_COMPAT_CWD`, `DSH_COMPAT_HARNESS_ROOT`, `DSH_COMPAT_TUI_ROOT`. Both source roots are required. Before changing the profile, it checks their HEADs against the exact Harness and TUI commits above, checks source versions `0.2.1-rc.5` / `0.18.0`, and requires `DSH_COMPAT_BIN` to resolve to the Harness checkout's `apps/cli/lib/bin.js`. It deletes only session directories that already resolve under `DSH_COMPAT_HOME`.
+The script expects Linux or macOS, the already built Harness CLI, the isolated profile, and these variables: `DSH_COMPAT_NODE`, `DSH_COMPAT_BIN`, `DSH_COMPAT_HOME`, `DSH_COMPAT_CWD`, `DSH_COMPAT_HARNESS_ROOT`, `DSH_COMPAT_TUI_ROOT`. Both source roots are required. Before changing the profile, it checks their HEADs against the exact Harness and TUI commits above, checks source versions `0.2.1-rc.5` / `0.18.0`, and requires `DSH_COMPAT_BIN` to resolve to the Harness checkout's `apps/cli/lib/bin.js`. It deletes only session directories that already resolve under `DSH_COMPAT_HOME`.
 
 ```bash
 python3 scripts/live-upstream-tui.py
 ```
 
-The resumed host loads the test-only `scripts/observe-session-delete.cjs` preload. It records the current workspace IDs and target-directory existence immediately before and after each real `rmSync` of the doomed session in `DSH_COMPAT_LOG/switch-deletions.jsonl`. It does not mock deletion, commands, or scenes. `switch-order` requires the ultimately adopted ID in the before-delete event and successful directory removal in the after-delete event, so even a switch completed between observer reads is testable. Missing or out-of-order events fail the check.
+The resumed host loads the test-only `scripts/observe-session-delete.cjs` preload. It records the current workspace IDs and target-directory existence immediately before and after real `rmSync`, Trash-provider process, or `renameSync` operations on the doomed session in `DSH_COMPAT_LOG/switch-deletions.jsonl`. It does not mock deletion, commands, or scenes. `switch-order` requires the ultimately adopted ID in the before-delete event and successful directory removal in the after-delete event, so even a switch completed between observer reads is testable. Missing or out-of-order events fail the check.
 
 Immediately before accepting the switch confirmation, `switch-proj-before` requires the doomed session's projection cache file to exist. If the host did not create it, the run fails without confirming deletion; absence afterward alone is not evidence of cleanup.
 
-The 24-assertion result above is the original recorded run, not a rerun of this hardened driver. Driver regressions run with `npm run test:live-driver` (Python 3 and Node required), also included in `npm run check`. They exercise immediate real Node deletion with ESM imports, reversed/missing deletion evidence, cache-present/cache-missing confirmation, and source identity/version checks before profile mutation. These tests do not establish upstream compatibility; the hardened live PTY run still needs the source-built Linux environment.
+The 24-assertion result above is the original recorded run, not a rerun of this hardened driver. Driver regressions run with `npm run test:live-driver` (Python 3 and Node required), also included in `npm run check`. They exercise immediate real Node deletion with ESM imports, reversed/missing deletion evidence, cache-present/cache-missing confirmation, and source identity/version checks before profile mutation. These tests do not establish upstream compatibility; the hardened live PTY run still needs a source-built upstream environment on the platform under test.
 
 Hardening checks on macOS with Node `v26.13.0` and Python `3.15.2`: `npm ci`, `npm run check` (75 plugin tests + 14 driver regression tests; no failures or skips), `npm pack --dry-run`, and `git diff --check` passed. The Linux live PTY run was not repeated in this environment.
 

@@ -8,13 +8,16 @@ must already resolve under the disposable HOME.
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
 import platform
 import select
+import struct
 import subprocess
 import sys
+import termios
 import threading
 import time
 from pathlib import Path
@@ -55,6 +58,7 @@ def sandbox_ok(path: str) -> bool:
 class Tui:
     def __init__(self, args: list[str], *, observe_deletions: list[Path] | None = None) -> None:
         self.master, slave = os.openpty()
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
         self.pid = os.fork()
         if self.pid == 0:
             os.setsid()
@@ -78,6 +82,8 @@ class Tui:
                 "LINES": str(ROWS),
                 "DSH_TUI_NO_LAUNCHPAD": "1",
                 "NO_COLOR": "1",
+                # Headless macOS may need the real filesystem Trash fallback.
+                "DSH_SESSION_TRASH_DIR": str(Path(HOME) / ".Trash"),
             })
             node_args: list[str] = []
             if observe_deletions:
@@ -146,6 +152,26 @@ class Tui:
                 return self.seen(needle)
             time.sleep(0.05)
         return self.seen(needle)
+
+    def wait_ready(self, timeout: float = 30) -> bool:
+        # A fresh, credential-free profile first shows the onboarding guide.
+        # Dismiss it through its real Escape action; never sign in or call a model.
+        end = time.monotonic() + timeout
+        dismissed = False
+        closed_sessions = False
+        while time.monotonic() < end:
+            if self.seen("Context loaded"):
+                return True
+            if not dismissed and self.seen("Welcome to dsh-TUI"):
+                self.key(b"\x1b")
+                dismissed = True
+            if not closed_sessions and self.seen("This terminal hosts several sessions"):
+                self.key(b"\x1b")
+                closed_sessions = True
+            if self.exit_code is not None:
+                return False
+            time.sleep(0.05)
+        return self.seen("Context loaded")
 
     def wait_exit(self, timeout: float) -> int | None:
         end = time.time() + timeout
@@ -298,6 +324,11 @@ class Report:
 
 
 def proc_proof(pid: int) -> dict:
+    if sys.platform == "darwin":
+        cmd = subprocess.check_output(["ps", "-ww", "-p", str(pid), "-o", "command="], text=True).strip()
+        files = subprocess.check_output(["lsof", "-a", "-p", str(pid), "-Fn"], text=True)
+        hits = [line[1:] for line in files.splitlines() if line.startswith("n") and "system.node" in line]
+        return {"cmdline": cmd, "maps": sorted(set(hits))}
     cmd = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode()
     maps = Path(f"/proc/{pid}/maps").read_text(errors="replace")
     hits = []
@@ -359,6 +390,22 @@ def deletion_order_ok(events: list[dict], targets: list[Path], adopted: str) -> 
     return True
 
 
+def initialize_workspace(report: Report) -> None:
+    if WORKSPACE.exists():
+        return
+    tui = Tui([])
+    try:
+        ready = tui.wait_ready()
+        if not ready:
+            tui.dump("initialize-fail")
+            report.add("initialize-workspace", False, "fresh profile did not reach the composer")
+        tui.type_line("/exit")
+        code = tui.wait_exit(15)
+        report.add("initialize-workspace", code == 0 and WORKSPACE.is_file(), f"exit={code}")
+    finally:
+        tui.close()
+
+
 def main() -> None:
     report = Report()
     validate_sources(report)
@@ -385,6 +432,8 @@ def main() -> None:
         installed_plugin.get("version") == "0.2.1" and installed_tui.get("version") == "0.18.0",
         f"plugin {installed_plugin.get('version')} tui {installed_tui.get('version')}",
     )
+    (Path(HOME) / ".Trash").mkdir(parents=True, exist_ok=True)
+    initialize_workspace(report)
     set_lists([], [])
 
     tui = Tui([])
@@ -392,7 +441,7 @@ def main() -> None:
     doomed = ""
     control_digest = ""
     try:
-        if not tui.wait("Context loaded", 30):
+        if not tui.wait_ready():
             tui.dump("boot-fail")
             report.add("boot", False, "composer did not become ready")
         report.add("boot", True, "chat composer ready")
@@ -508,7 +557,7 @@ def main() -> None:
     tui = Tui(["--resume", doomed], observe_deletions=delete_targets)
     adopted = ""
     try:
-        if not tui.wait("Context loaded", 30):
+        if not tui.wait_ready():
             tui.dump("resume-fail")
             report.add("resume", False, tui.raw_text()[-1500:])
         if doomed not in profile_ids() or control not in profile_ids():
@@ -536,6 +585,9 @@ def main() -> None:
         adopted = adopted_ids[0]
         events = [json.loads(line) for line in DELETE_TRACE.read_text().splitlines()]
         report.add("switch-order", deletion_order_ok(events, delete_targets, adopted), json.dumps(events))
+        if sys.platform == "darwin":
+            report.add("switch-trash", all(event.get("operation") != "rmSync" for event in events),
+                       "macOS used Trash operations, not permanent removal")
         if session_dirs(doomed):
             report.add("switch-dir", False, "doomed directory still present")
         if not session_dirs(control) or log_digest(control) != control_digest:
@@ -593,7 +645,7 @@ def main() -> None:
 
     tui = Tui([])
     try:
-        if not tui.wait("Context loaded", 30):
+        if not tui.wait_ready():
             tui.dump("restart-fail")
             report.add("restart-boot", False, "restart did not reach the composer")
         ids = profile_ids()
