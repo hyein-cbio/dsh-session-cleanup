@@ -6,7 +6,94 @@ Results below are Linux x86_64 only. They say nothing about macOS Trash.
 
 ## Verified pair
 
-dsh-TUI `v0.17.0` names Harness `0.2.1-rc.3` as `UPSTREAM_VALIDATED_VERSION` in `src/dsh-adapter/contract.ts` on commit `103834cb1000a84569a71646fec7162f18a058c8`. That list ends at `0.2.1-rc.3`. Harness `0.2.1-rc.4` and `0.2.2-alpha.2` are newer releases and are outside that list. The live checks below use only the named pair.
+GitHub Latest for dsh-TUI is `v0.18.0`. That commit's `src/dsh-adapter/contract.ts` sets `UPSTREAM_VALIDATED_VERSION` to `0.2.1-rc.5`, and that string is also the greatest entry in `UPSTREAM_VALIDATED_VERSIONS`. npm semver `7.8.5` with `includePrerelease: true` says `0.2.1-rc.5` satisfies all 36 `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer ranges on that commit at once. This is the first verification of this pair. The earlier verified pair, dsh-TUI `v0.17.0` with Harness `0.2.1-rc.3`, is unchanged and is recorded below.
+
+| Cell | Harness | dsh-TUI | Result |
+| --- | --- | --- | --- |
+| Line named by dsh-TUI `v0.18.0` | `0.2.1-rc.5` tag `dsh-v0.2.1-rc.5` | `0.18.0` tag `v0.18.0` | **VERIFIED** on Linux |
+
+Node `v22.23.4`. Kernel `Linux 6.12.94+ x86_64`. Plugin commit `459d04c992a33ac437897639fb336de789e0002f`. Package version stayed `0.2.1`.
+
+Harness `dsh-v0.2.2-alpha.2` is outside `UPSTREAM_VALIDATED_VERSIONS` and fails every harness peer range on this TUI commit. It was not tested. No DeepSeek Harness GitHub release is newer than `dsh-v0.2.1-rc.5`. Older supported lines (`0.2.1-rc.4`, `0.2.1-rc.3`, and the rest of the explicit list) were not part of this run.
+
+### Harness `dsh-v0.2.1-rc.5`
+
+- Repository: `deepseek-ai/deepseek-harness`
+- Release id: `428584211`
+- Tag: `dsh-v0.2.1-rc.5` (lightweight tag)
+- Commit: `b830ec950faba0a46dda564be3e2d854afed94f1`
+- Published: `2026-10-30T02:12:26Z`
+- URL: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.5
+- Source manifests: `@deepseek-ai/dsh` and `@deepseek-ai/dsh-root` `0.2.1-rc.5`
+- Checkout HEAD matched the commit. The live host was `node apps/cli/lib/bin.js` from that checkout. `/proc/<pid>/maps` showed `native/system/packages/linux-x64/bin/glibc/system.node` from the same tree, built with the checkout's `pnpm run build:native-system` (`tsx native/system/scripts/build.ts --host-addon-only`).
+
+### dsh-TUI `v0.18.0`
+
+- Repository: `ccch1mneyyy/dsh-TUI`
+- Release id: `430342600`
+- Tag: `v0.18.0` (annotated tag object `d6cc02f3d294e6aea60638c3e9aa4400e7de36ad`, tagger `2026-11-01T03:30:42Z`)
+- Commit: `1d0d946f459da5149aba64cc6cc0ef7da304053c`
+- Published: `2026-11-01T03:37:37Z`
+- URL: https://github.com/ccch1mneyyy/dsh-TUI/releases/tag/v0.18.0
+- Manifest: `@deepseek-harness-tui/dsh-tui` `0.18.0`
+- Checkout HEAD matched the commit. The profile dependency is the tarball packed from that checkout (`file:`), not a registry release. Installed files match that tarball. Packed files other than the publish `package.json` match the checkout.
+
+### Support rule
+
+Read from commit `1d0d946f459da5149aba64cc6cc0ef7da304053c` only:
+
+- Contract symbol: `UPSTREAM_VALIDATED_VERSION = '0.2.1-rc.5'`.
+- Explicit list greatest, under the contract's semver order (alpha < beta < rc): `0.2.1-rc.5`.
+- Peer intersection with a published non-draft Harness release: `0.2.0-rc.2`, `0.2.1-rc.2`, `0.2.1-rc.3`, `0.2.1-rc.4`, `0.2.1-rc.5`. `primaryFailCount` for `0.2.1-rc.5` is 0.
+- Ignored on their own lines: `@deepseek-ai/cordis`, `@deepseek-ai/schemastery`, `@anthropic-ai/claude-agent-sdk`.
+- pnpm workspace overrides were not the support ceiling.
+
+### Live `/nix` checks
+
+Isolated `HOME` / `DSH_HOME` / XDG tree under `/tmp/compat-sandbox`. `DSH_TUI_NO_LAUNCHPAD=1`. No model calls. The driver is `scripts/live-upstream-tui.py` (PTY, real TUI, no mocked scenes).
+
+| Check | Result |
+| --- | --- |
+| Profile dependencies are `file:` tarballs of this plugin and the packed TUI | pass |
+| Packed plugin loads; `/nix help` shows usage | pass |
+| Host cmdline is the Harness checkout `apps/cli/lib/bin.js` | pass |
+| Cancelling confirmation keeps the original session log | pass |
+| Confirmed `/nix` adopts a different session id while the old directory still exists, then removes it | pass |
+| Projection cache, `sessionIds`, `pinnedSessionIds`, and `archivedSessionIds` drop the deleted id and keep the control id | pass |
+| The new session accepts `/nix help` | pass |
+| `/nix quit` exits 0 and removes the adopted session directory | pass |
+| Restart does not recreate either deleted session | pass |
+| The unrelated control session directory and pin remain | pass |
+
+24 passed, 0 failed, 0 skipped. `/nix quit` was the process exit code 0.
+
+The switch scene was present, so this run exercised the real switch. It did not disable that scene. When the scene is missing, `/nix` is supposed to refuse without deleting; that branch is the unit test `DSH /nix does not delete when the TUI refuses to switch` and was not re-enacted live.
+
+macOS Trash was not tested.
+
+### Re-running the live harness
+
+The script expects the already built Harness CLI, the isolated profile, and these variables: `DSH_COMPAT_NODE`, `DSH_COMPAT_BIN`, `DSH_COMPAT_HOME`, `DSH_COMPAT_CWD`, `DSH_COMPAT_HARNESS_ROOT`. It deletes only session directories that already resolve under `DSH_COMPAT_HOME`.
+
+```bash
+python3 scripts/live-upstream-tui.py
+```
+
+### Package checks on this repo
+
+On commit `459d04c992a33ac437897639fb336de789e0002f`, with Node `v22.23.4`:
+
+| Command | Exit |
+| --- | --- |
+| `npm ci` | 0 |
+| `npm run check` | 0 (75 passed, 0 failed, 0 skipped) |
+| `npm pack --dry-run` | 0, package `dsh-session-cleanup@0.2.1` |
+
+Unit tests do not replace the live checks above.
+
+## Previous verified pair (dsh-TUI v0.17.0)
+
+dsh-TUI `v0.17.0` names Harness `0.2.1-rc.3` as `UPSTREAM_VALIDATED_VERSION` in `src/dsh-adapter/contract.ts` on commit `103834cb1000a84569a71646fec7162f18a058c8`. That list ends at `0.2.1-rc.3`. Harness `0.2.1-rc.4`, `0.2.1-rc.5`, and `0.2.2-alpha.2` were outside that list when this pair was verified. The live checks below use only that named pair.
 
 | Cell | Harness | dsh-TUI | Result |
 | --- | --- | --- | --- |
@@ -68,7 +155,7 @@ Unit tests do not replace the live checks above. The three classifier tests only
 
 ## Earlier matrix
 
-Bootstrap attempt against the newest published Harness release. That pair is not the line dsh-TUI `v0.17.0` validates. It is not a regression against the verified pair above. The verified pair was recorded after this attempt.
+Bootstrap attempt against the newest published Harness release at that time. That pair is not the line dsh-TUI `v0.17.0` validates. It is not a regression against the v0.17.0 pair above. The v0.17.0 verification was recorded after this attempt. dsh-TUI `v0.18.0` later named Harness `0.2.1-rc.5`; that newer pair is the current verified cell and is not this matrix.
 
 | Cell | Harness | dsh-TUI | Result |
 | --- | --- | --- | --- |
