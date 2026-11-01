@@ -33,6 +33,11 @@ PROJ = DSH / "storages" / "session_projcache" / "sessions"
 SESSIONS = DSH / "sessions"
 LOG = Path(os.environ.get("DSH_COMPAT_LOG", "/tmp/compat-src/live-run"))
 HARNESS = os.environ.get("DSH_COMPAT_HARNESS_ROOT", "")
+TUI_ROOT = os.environ.get("DSH_COMPAT_TUI_ROOT", "")
+EXPECTED_HARNESS_HEAD = "b830ec950faba0a46dda564be3e2d854afed94f1"
+EXPECTED_TUI_HEAD = "1d0d946f459da5149aba64cc6cc0ef7da304053c"
+DELETE_TRACE = LOG / "switch-deletions.jsonl"
+DELETE_OBSERVER = Path(__file__).with_name("observe-session-delete.cjs").resolve()
 ROWS, COLS = 42, 120
 SECRET_MARKERS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 
@@ -48,7 +53,7 @@ def sandbox_ok(path: str) -> bool:
 
 
 class Tui:
-    def __init__(self, args: list[str]) -> None:
+    def __init__(self, args: list[str], *, observe_deletions: list[Path] | None = None) -> None:
         self.master, slave = os.openpty()
         self.pid = os.fork()
         if self.pid == 0:
@@ -74,7 +79,15 @@ class Tui:
                 "DSH_TUI_NO_LAUNCHPAD": "1",
                 "NO_COLOR": "1",
             })
-            os.execve(CLI, [CLI, BIN, "--profile", PROFILE, *args], env)
+            node_args: list[str] = []
+            if observe_deletions:
+                env.update({
+                    "DSH_COMPAT_DELETE_TARGETS": json.dumps([str(p.resolve()) for p in observe_deletions]),
+                    "DSH_COMPAT_DELETE_TRACE": str(DELETE_TRACE.resolve()),
+                    "DSH_COMPAT_DELETE_WORKSPACE": str(WORKSPACE.resolve()),
+                })
+                node_args = ["--require", str(DELETE_OBSERVER)]
+            os.execve(CLI, [CLI, *node_args, BIN, "--profile", PROFILE, *args], env)
             raise SystemExit(127)
         os.close(slave)
         self.screen = Screen(ROWS, COLS)
@@ -301,13 +314,59 @@ def git_head(root: str) -> str:
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
+def validate_sources(report: Report) -> None:
+    # Fail before reading or changing the disposable profile, not just at report time.
+    report.add("source-roots", bool(HARNESS and TUI_ROOT),
+               "DSH_COMPAT_HARNESS_ROOT and DSH_COMPAT_TUI_ROOT are required")
+    for name, root, expected in (
+        ("harness", HARNESS, EXPECTED_HARNESS_HEAD),
+        ("tui", TUI_ROOT, EXPECTED_TUI_HEAD),
+    ):
+        head = git_head(root)
+        report.provenance[f"{name}Head"] = head
+        report.add(f"{name}-commit", head == expected, f"expected={expected} actual={head}")
+    harness_pkg = json.loads((Path(HARNESS) / "apps/cli/package.json").read_text())
+    tui_pkg = json.loads((Path(TUI_ROOT) / "package.json").read_text())
+    report.add("source-versions",
+               harness_pkg.get("version") == "0.2.1-rc.5" and tui_pkg.get("version") == "0.18.0",
+               f"harness {harness_pkg.get('version')} tui {tui_pkg.get('version')}")
+    report.add("host-checkout", Path(BIN).resolve() == (Path(HARNESS) / "apps/cli/lib/bin.js").resolve(), BIN)
+
+
+def confirm_switch(tui: Tui, report: Report, doomed: str, targets: list[Path]) -> None:
+    require_sandbox(targets)
+    report.add("switch-proj-before", proj_has(doomed), f"projection cache must exist for {doomed}")
+    tui.key(b"\r")
+
+
+def deletion_order_ok(events: list[dict], targets: list[Path], adopted: str) -> bool:
+    # Inspect durable boundary events; no polling thread has to see a transient overlap.
+    if not targets:
+        return False
+    for target in targets:
+        matching = [event for event in events if event.get("target") == str(target.resolve())]
+        if not matching or len(matching) % 2:
+            return False
+        # Cleanup may retry a failed removal or remove a recreated directory.
+        # Every attempt must follow adoption; the final attempt must remove it.
+        for before, after in zip(matching[::2], matching[1::2]):
+            if not (before.get("event") == "before-delete" and before.get("exists") is True
+                    and adopted in before.get("ids", [])
+                    and after.get("event") == "after-delete" and isinstance(after.get("exists"), bool)):
+                return False
+        if matching[-1]["exists"]:
+            return False
+    return True
+
+
 def main() -> None:
     report = Report()
-    report.provenance = {
+    validate_sources(report)
+    report.provenance.update({
         "node": subprocess.check_output([CLI, "-v"], text=True).strip(),
         "uname": " ".join(platform.uname()),
         "hostNode": CLI,
-    }
+    })
     if not sandbox_ok(str(DSH)) or not sandbox_ok(CWD):
         raise SystemExit("sandbox paths are not under HOME")
     profile_pkg = json.loads((Path(CWD) / "package.json").read_text())
@@ -326,11 +385,6 @@ def main() -> None:
         installed_plugin.get("version") == "0.2.1" and installed_tui.get("version") == "0.18.0",
         f"plugin {installed_plugin.get('version')} tui {installed_tui.get('version')}",
     )
-    if HARNESS:
-        report.provenance["harnessHead"] = git_head(HARNESS)
-    tui_root = os.environ.get("DSH_COMPAT_TUI_ROOT", "")
-    if tui_root:
-        report.provenance["tuiHead"] = git_head(tui_root)
     set_lists([], [])
 
     tui = Tui([])
@@ -345,8 +399,6 @@ def main() -> None:
         proof = proc_proof(tui.pid)
         host_ok = BIN in proof["cmdline"] and CLI in proof["cmdline"]
         report.add("host-cmdline", host_ok, proof["cmdline"])
-        if HARNESS and host_ok:
-            report.add("host-checkout", BIN.startswith(HARNESS), BIN)
 
         tui.type_line("/nix help")
         if not tui.wait("Usage: /nix", 10):
@@ -399,7 +451,7 @@ def main() -> None:
 
         proof = proc_proof(tui.pid)
         addon = [hit for hit in proof["maps"] if hit.endswith("system.node")]
-        addon_ok = bool(addon) and all(hit.startswith(HARNESS) for hit in addon) if HARNESS else bool(addon)
+        addon_ok = bool(addon) and all(Path(hit).resolve().is_relative_to(Path(HARNESS).resolve()) for hit in addon)
         report.add("flock-addon", addon_ok, json.dumps(addon))
 
         prev = set(profile_ids())
@@ -448,21 +500,12 @@ def main() -> None:
         report.add("control-stable-before-resume", False, "control log changed while stopped")
     report.add("control-stable-before-resume", True, control_digest[:12])
 
-    samples: list[dict] = []
-    stop_poll = threading.Event()
-
-    def poll() -> None:
-        while not stop_poll.is_set():
-            try:
-                samples.append({
-                    "ids": profile_ids(),
-                    "doomed": bool(session_dirs(doomed)),
-                })
-            except (OSError, json.JSONDecodeError, KeyError):
-                pass
-            time.sleep(0.005)
-
-    tui = Tui(["--resume", doomed])
+    delete_targets = session_dirs(doomed)
+    require_sandbox(delete_targets)
+    report.add("switch-targets", bool(delete_targets), "doomed session directory exists before resume")
+    LOG.mkdir(parents=True, exist_ok=True)
+    DELETE_TRACE.write_text("")
+    tui = Tui(["--resume", doomed], observe_deletions=delete_targets)
     adopted = ""
     try:
         if not tui.wait("Context loaded", 30):
@@ -481,50 +524,23 @@ def main() -> None:
             tui.dump("switch-dialog-fail")
             report.add("switch-dialog", False, "confirmation missing on resume")
         report.add("switch-dialog", True, "confirmation open for doomed session")
-        require_sandbox(session_dirs(doomed) + session_dirs(control))
-        poller = threading.Thread(target=poll, daemon=True)
-        poller.start()
-        time.sleep(0.05)
-        tui.key(b"\r")
+        confirm_switch(tui, report, doomed, session_dirs(doomed) + session_dirs(control))
         if not tui.wait("Previous session deleted", 15):
             tui.dump("switch-fail")
-            stop_poll.set()
             report.add("switch", False, "deletion summary missing")
-        time.sleep(0.3)
-        stop_poll.set()
-        poller.join(timeout=1)
-
-        overlap = False
-        removed_after = False
-        seen_new = False
-        for sample in samples:
-            fresh = [sid for sid in sample["ids"] if sid not in pre_ids]
-            if fresh and sample["doomed"]:
-                overlap = True
-                seen_new = True
-            elif fresh:
-                seen_new = True
-            if seen_new and not sample["doomed"]:
-                removed_after = True
-        if not overlap or not removed_after:
-            report.add(
-                "switch-order",
-                False,
-                f"overlap={overlap} removed_after={removed_after} samples={len(samples)} last={samples[-3:]}",
-            )
-        report.add("switch-order", True, f"new id appeared while doomed dir existed; samples={len(samples)}")
 
         now = profile_ids()
         adopted_ids = [sid for sid in now if sid not in pre_ids]
         if len(adopted_ids) != 1 or doomed in now or control not in now:
             report.add("switch-ids", False, f"now={now} pre={sorted(pre_ids)}")
         adopted = adopted_ids[0]
+        events = [json.loads(line) for line in DELETE_TRACE.read_text().splitlines()]
+        report.add("switch-order", deletion_order_ok(events, delete_targets, adopted), json.dumps(events))
         if session_dirs(doomed):
             report.add("switch-dir", False, "doomed directory still present")
         if not session_dirs(control) or log_digest(control) != control_digest:
             report.add("switch-control", False, "control session changed during /nix")
-        if proj_has(doomed):
-            report.add("switch-proj", False, "doomed projection cache remains")
+        report.add("switch-proj", not proj_has(doomed), "doomed projection cache removed")
         lists = global_lists()
         if doomed in lists["pinned"] or doomed in lists["archived"] or control not in lists["pinned"]:
             report.add("switch-lists", False, json.dumps(lists))
@@ -557,7 +573,6 @@ def main() -> None:
             report.add("quit", False, f"exit={code} raw={tui.raw_text()[-800:]}")
         report.add("quit", True, "exit 0")
     finally:
-        stop_poll.set()
         if tui.exit_code is None:
             tui.close()
         else:

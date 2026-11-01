@@ -73,11 +73,19 @@ macOS Trash was not tested.
 
 ### Re-running the live harness
 
-The script expects the already built Harness CLI, the isolated profile, and these variables: `DSH_COMPAT_NODE`, `DSH_COMPAT_BIN`, `DSH_COMPAT_HOME`, `DSH_COMPAT_CWD`, `DSH_COMPAT_HARNESS_ROOT`. It deletes only session directories that already resolve under `DSH_COMPAT_HOME`.
+The script expects Linux, the already built Harness CLI, the isolated profile, and these variables: `DSH_COMPAT_NODE`, `DSH_COMPAT_BIN`, `DSH_COMPAT_HOME`, `DSH_COMPAT_CWD`, `DSH_COMPAT_HARNESS_ROOT`, `DSH_COMPAT_TUI_ROOT`. Both source roots are required. Before changing the profile, it checks their HEADs against the exact Harness and TUI commits above, checks source versions `0.2.1-rc.5` / `0.18.0`, and requires `DSH_COMPAT_BIN` to resolve to the Harness checkout's `apps/cli/lib/bin.js`. It deletes only session directories that already resolve under `DSH_COMPAT_HOME`.
 
 ```bash
 python3 scripts/live-upstream-tui.py
 ```
+
+The resumed host loads the test-only `scripts/observe-session-delete.cjs` preload. It records the current workspace IDs and target-directory existence immediately before and after each real `rmSync` of the doomed session in `DSH_COMPAT_LOG/switch-deletions.jsonl`. It does not mock deletion, commands, or scenes. `switch-order` requires the ultimately adopted ID in the before-delete event and successful directory removal in the after-delete event, so even a switch completed between observer reads is testable. Missing or out-of-order events fail the check.
+
+Immediately before accepting the switch confirmation, `switch-proj-before` requires the doomed session's projection cache file to exist. If the host did not create it, the run fails without confirming deletion; absence afterward alone is not evidence of cleanup.
+
+The 24-assertion result above is the original recorded run, not a rerun of this hardened driver. Driver regressions run with `npm run test:live-driver` (Python 3 and Node required), also included in `npm run check`. They exercise immediate real Node deletion with ESM imports, reversed/missing deletion evidence, cache-present/cache-missing confirmation, and source identity/version checks before profile mutation. These tests do not establish upstream compatibility; the hardened live PTY run still needs the source-built Linux environment.
+
+Hardening checks on macOS with Node `v26.13.0` and Python `3.15.2`: `npm ci`, `npm run check` (75 plugin tests + 14 driver regression tests; no failures or skips), `npm pack --dry-run`, and `git diff --check` passed. The Linux live PTY run was not repeated in this environment.
 
 ### Package checks on this repo
 
