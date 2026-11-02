@@ -1,14 +1,18 @@
 # Changelog
 
-Current DSH release is **0.2.1**
-([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1) ·
-[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.2.1)).
+Current DSH release is **0.2.2**
+([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2) ·
+[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.2.2)).
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-02
+
 ### Fixed
+- Session deletion completes even when the event loop has no other pending work.
+- Upstream CI discovers packed tarballs dynamically and validates installed versions against source manifests.
 - Deleting a session removes its id from workspace `pinnedSessionIds` as well as `archivedSessionIds`. Other pinned and archived ids stay.
 
 ### Compatibility
@@ -16,9 +20,11 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 - Verified on Linux with dsh-TUI `v0.17.0` (`103834cb1000a84569a71646fec7162f18a058c8`) and the Harness line that commit names, `0.2.1-rc.3` (`1f81c047fc48fa190a683e469daa699857e9afe8`). Live `/nix` and `/nix quit` checks passed. See [TESTING.md](TESTING.md).
 - DeepSeek Harness `dsh-v0.2.2-alpha.2` (`f3803c96974ad4a94195fb97e5c637e9c2a3afe3`) with that dsh-TUI `v0.17.0` commit is **not supported**. The host rejects the TUI checkout before anything is installed. macOS Trash behavior was not tested.
 
+### Added
+- Linux and macOS package checks and source-built live upstream PTY checks in GitHub Actions.
+
 ### Removed
-- Interactive overlay pickers for session cleanup and target-agent selection. Both flows use the basic selector (`ctx.ui.select`).
-- Picker-only `iconMode` config. The `enabled` toggle is unchanged.
+- Legacy Pi/agent code, configuration, and npm runtime dependencies. The package exposes only the native DSH entry and requires dsh-TUI with its DSH backend.
 
 ## [0.2.1] - 2026-10-18
 
@@ -115,6 +121,7 @@ These entries shipped on the original Pi package before the DSH port. They are k
 - Upgraded custom picker UI with bordered modal layout, title/status/help lines, and responsive overlay sizing
 - Added production-ready package metadata and README
 
+[0.2.2]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2
 [0.2.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1
 [0.2.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0
 [0.1.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.1.1

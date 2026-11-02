@@ -11,7 +11,7 @@ Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup).
 
 </div>
 
-Latest DSH release is **0.2.1** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1). See [CHANGELOG.md](CHANGELOG.md).
+Latest DSH release is **0.2.2** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2). See [CHANGELOG.md](CHANGELOG.md).
 
 ## What this is
 
