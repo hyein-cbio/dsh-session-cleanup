@@ -28,6 +28,17 @@ def run(name: str, args: list[str], cwd: Path, env: dict[str, str], log: Path,
     return result.stdout if capture_stdout else None
 
 
+def find_tarball(directory: Path) -> Path:
+    """Use the actual artifact in a fresh, package-specific output directory."""
+    tarballs = list(directory.glob("*.tgz"))
+    if len(tarballs) != 1 or not tarballs[0].is_file():
+        raise SystemExit(f"expected exactly one source-built tarball in {directory}; found {len(tarballs)}")
+    tarball = tarballs[0].resolve()
+    if tarball.parent != directory.resolve():
+        raise SystemExit(f"source-built tarball escaped output directory: {tarball}")
+    return tarball
+
+
 def main() -> None:
     log = Path(os.environ["DSH_COMPAT_LOG"]).resolve()
     log.mkdir(parents=True, exist_ok=True)
@@ -66,10 +77,14 @@ def main() -> None:
     run("plugin-build", ["npm", "run", "build"], ROOT, env, log)
     packs = home / "tarballs"
     packs.mkdir(parents=True)
-    run("tui-pack", ["pnpm", "pack", "--config.node-linker=hoisted", "--pack-destination", str(packs)], tui, env, log)
+    tui_packs = packs / "tui"
+    tui_packs.mkdir()
+    # Lifecycle scripts can mix their stdout into pnpm pack --json output.
+    # A fresh destination identifies the actual artifact without parsing logs.
+    run("tui-pack", ["pnpm", "pack", "--config.node-linker=hoisted", "--pack-destination", str(tui_packs)], tui, env, log)
+    tui_pack = find_tarball(tui_packs)
     packed = run("plugin-pack", ["npm", "pack", "--json", "--pack-destination", str(packs)],
                  ROOT, env, log, capture_stdout=True)
-    tui_pack = packs / "deepseek-harness-tui-dsh-tui-0.18.0.tgz"
     plugin_pack = packs / json.loads(packed)[0]["filename"]
     if not tui_pack.is_file() or not plugin_pack.is_file():
         raise SystemExit("expected source-built tarballs were not produced")

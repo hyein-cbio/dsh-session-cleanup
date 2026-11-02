@@ -28,19 +28,22 @@ class DriverTests(unittest.TestCase):
         self.home = Path(self.temp.name).resolve()
         self.harness = self.home / "harness"
         self.tui = self.home / "tui"
+        self.plugin = self.home / "plugin"
         self.cwd = self.home / "profile"
         self.cwd.mkdir()
-        for path, version in (
-            (self.harness / "apps/cli/package.json", "0.2.1-rc.5"),
-            (self.tui / "package.json", "0.18.0"),
+        for path, name, version in (
+            (self.harness / "apps/cli/package.json", "@deepseek-ai/dsh", "0.2.1-rc.5"),
+            (self.tui / "package.json", "@deepseek-harness-tui/dsh-tui", "0.18.0"),
+            (self.plugin / "package.json", "dsh-session-cleanup", "0.3.0-beta.1"),
         ):
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps({"version": version}))
+            path.write_text(json.dumps({"name": name, "version": version}))
         self.workspace = self.home / "workspace.json"
         self.workspace.write_text("profile must not change")
         self.proj = self.home / "proj"
         self.proj.mkdir()
-        self.patcher = patch.multiple(driver, HOME=str(self.home), CWD=str(self.cwd),
+        self.patcher = patch.multiple(driver, ROOT=self.plugin, HOME=str(self.home), CWD=str(self.cwd),
+                                      DSH=self.home / ".dsh",
                                       HARNESS=str(self.harness), TUI_ROOT=str(self.tui),
                                       BIN=str(self.harness / "apps/cli/lib/bin.js"),
                                       WORKSPACE=self.workspace, PROJ=self.proj, LOG=self.home / "logs")
@@ -96,6 +99,57 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(self.report.provenance, {
             "harnessHead": driver.EXPECTED_HARNESS_HEAD, "tuiHead": driver.EXPECTED_TUI_HEAD,
         })
+
+    def prepare_profile(self):
+        sources = {key: json.loads((root / "package.json").read_text())
+                   for key, root in (("plugin", self.plugin), ("tui", self.tui))}
+        deps = {source["name"]: f"file:{self.home / (key + '.tgz')}" for key, source in sources.items()}
+        (self.cwd / "package.json").write_text(json.dumps({"dependencies": deps}))
+        installed = {}
+        for key, source in sources.items():
+            path = self.cwd / "node_modules" / source["name"] / "package.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(source))
+            installed[key] = path
+        return installed
+
+    def test_installed_versions_follow_source_manifests_including_prereleases(self):
+        for root, name, version in ((self.plugin, "@example/renamed-plugin", "1.2.0-beta.3"),
+                                    (self.tui, "@example/renamed-tui", "0.19.0-rc.1")):
+            (root / "package.json").write_text(json.dumps({"name": name, "version": version}))
+        self.prepare_profile()
+        driver.validate_profile(self.report)
+        self.assertEqual([row["name"] for row in self.report.rows], ["profile-file-deps", "installed-versions"])
+        self.assertTrue(all(row["ok"] for row in self.report.rows))
+
+    def test_wrong_installed_version_fails_before_host_or_profile_changes(self):
+        for key in ("plugin", "tui"):
+            with self.subTest(key=key):
+                installed = self.prepare_profile()
+                manifest = json.loads(installed[key].read_text())
+                manifest["version"] = "wrong"
+                installed[key].write_text(json.dumps(manifest))
+                with patch.object(driver.subprocess, "check_output", return_value="v22.23.4"):
+                    self.assert_preflight_refuses("installed-versions")
+
+    def test_wrong_installed_package_identity_is_refused(self):
+        installed = self.prepare_profile()
+        manifest = json.loads(installed["plugin"].read_text())
+        manifest["name"] = "different-package"
+        installed["plugin"].write_text(json.dumps(manifest))
+        with self.assertRaises(SystemExit):
+            driver.validate_profile(self.report)
+        self.assertEqual(self.report.rows[-1]["name"], "installed-versions")
+        self.assertFalse(self.report.rows[-1]["ok"])
+
+    def test_registry_dependency_is_refused_before_host_or_profile_changes(self):
+        self.prepare_profile()
+        profile = self.cwd / "package.json"
+        manifest = json.loads(profile.read_text())
+        manifest["dependencies"]["dsh-session-cleanup"] = "latest"
+        profile.write_text(json.dumps(manifest))
+        with patch.object(driver.subprocess, "check_output", return_value="v22.23.4"):
+            self.assert_preflight_refuses("profile-file-deps")
 
     def test_missing_projection_refuses_confirmation(self):
         host = Mock()

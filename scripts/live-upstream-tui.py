@@ -25,6 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pty_screen import Screen
 
+ROOT = Path(__file__).resolve().parents[1]
 CLI = os.environ.get("DSH_COMPAT_NODE", "/exec-daemon/node")
 BIN = os.environ["DSH_COMPAT_BIN"]
 HOME = os.environ["DSH_COMPAT_HOME"]
@@ -406,6 +407,36 @@ def initialize_workspace(report: Report) -> None:
         tui.close()
 
 
+def validate_profile(report: Report) -> None:
+    sources = {
+        "plugin": json.loads((ROOT / "package.json").read_text()),
+        "tui": json.loads((Path(TUI_ROOT) / "package.json").read_text()),
+    }
+    profile_pkg = json.loads((Path(CWD) / "package.json").read_text())
+    deps = profile_pkg.get("dependencies") or {}
+    file_deps = {name: spec for name, spec in deps.items() if str(spec).startswith("file:")}
+    registry = {name: spec for name, spec in deps.items() if not str(spec).startswith("file:")}
+    report.add(
+        "profile-file-deps",
+        not registry and all(source["name"] in file_deps for source in sources.values()),
+        json.dumps(deps),
+    )
+    installed = {
+        key: json.loads((Path(CWD) / "node_modules" / source["name"] / "package.json").read_text())
+        for key, source in sources.items()
+    }
+    report.add(
+        "installed-versions",
+        all(installed[key].get("name") == source["name"]
+            and bool(source.get("version"))
+            and installed[key].get("version") == source["version"]
+            for key, source in sources.items()),
+        "; ".join(f"{key} expected={source['name']}@{source.get('version')} "
+                  f"actual={installed[key].get('name')}@{installed[key].get('version')}"
+                  for key, source in sources.items()),
+    )
+
+
 def main() -> None:
     report = Report()
     validate_sources(report)
@@ -416,22 +447,7 @@ def main() -> None:
     })
     if not sandbox_ok(str(DSH)) or not sandbox_ok(CWD):
         raise SystemExit("sandbox paths are not under HOME")
-    profile_pkg = json.loads((Path(CWD) / "package.json").read_text())
-    deps = profile_pkg.get("dependencies") or {}
-    file_deps = {name: spec for name, spec in deps.items() if str(spec).startswith("file:")}
-    registry = {name: spec for name, spec in deps.items() if not str(spec).startswith("file:")}
-    report.add(
-        "profile-file-deps",
-        not registry and "dsh-session-cleanup" in file_deps and any(name.endswith("dsh-tui") for name in file_deps),
-        json.dumps(deps),
-    )
-    installed_plugin = json.loads((Path(CWD) / "node_modules" / "dsh-session-cleanup" / "package.json").read_text())
-    installed_tui = json.loads((Path(CWD) / "node_modules" / "@deepseek-harness-tui" / "dsh-tui" / "package.json").read_text())
-    report.add(
-        "installed-versions",
-        installed_plugin.get("version") == "0.2.1" and installed_tui.get("version") == "0.18.0",
-        f"plugin {installed_plugin.get('version')} tui {installed_tui.get('version')}",
-    )
+    validate_profile(report)
     (Path(HOME) / ".Trash").mkdir(parents=True, exist_ok=True)
     initialize_workspace(report)
     set_lists([], [])

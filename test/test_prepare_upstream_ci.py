@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -40,7 +41,10 @@ class PrepareTests(unittest.TestCase):
         self.bad_head = False
         self.failed_step = None
         self.plugin_filename = "dsh-session-cleanup-0.2.1.tgz"
+        self.tui_filename = "deepseek-harness-tui-dsh-tui-0.18.0.tgz"
         self.produce_plugin_pack = True
+        self.produce_tui_pack = True
+        self.extra_tui_filename = None
         self.runner = patch.object(prepare.subprocess, "run", side_effect=self.invoke)
         self.runner.start()
         self.addCleanup(self.runner.stop)
@@ -53,9 +57,14 @@ class PrepareTests(unittest.TestCase):
         stdout = None
         if args[1] == "pack":
             packs = Path(args[args.index("--pack-destination") + 1])
-            name = self.plugin_filename if args[0] == "npm" else "deepseek-harness-tui-dsh-tui-0.18.0.tgz"
-            if args[0] != "npm" or self.produce_plugin_pack:
+            name = self.plugin_filename if args[0] == "npm" else self.tui_filename
+            produce = self.produce_plugin_pack if args[0] == "npm" else self.produce_tui_pack
+            if produce:
                 (packs / name).write_bytes(b"fixture")
+            if args[0] == "pnpm":
+                kwargs["stdout"].write("prepack stdout is not JSON\n")
+                if self.extra_tui_filename:
+                    (packs / self.extra_tui_filename).write_bytes(b"extra fixture")
             if args[0] == "npm":
                 self.assertIn("--json", args)
                 self.assertEqual(kwargs["stdout"], subprocess.PIPE)
@@ -90,6 +99,25 @@ class PrepareTests(unittest.TestCase):
         self.assertIn("npm warning: fixture diagnostic", pack_log)
         self.assertIn(self.plugin_filename, pack_log)
 
+    def test_tui_tarball_filename_comes_from_actual_pack_output(self):
+        self.tui_filename = "renamed-tui-0.19.0-rc.1.tgz"
+        prepare.main()
+        install, _cwd, _env = self.commands[-1]
+        self.assertIn(f"file:{self.home / 'tarballs/tui' / self.tui_filename}", install)
+        self.assertIn("prepack stdout is not JSON", (self.log / "tui-pack.log").read_text())
+
+    def test_missing_or_ambiguous_tui_tarballs_do_not_install_profile(self):
+        for produce, extra in ((False, None), (True, "unexpected.tgz")):
+            with self.subTest(produce=produce, extra=extra):
+                self.produce_tui_pack = produce
+                self.extra_tui_filename = extra
+                with self.assertRaisesRegex(SystemExit, "expected exactly one source-built tarball"):
+                    prepare.main()
+                self.assertFalse((self.home / ".dsh").exists())
+                self.assertFalse(self.github_env.exists())
+                self.assertFalse((self.log / "prepared.json").exists())
+                shutil.rmtree(self.home)
+
     def test_missing_plugin_tarball_does_not_install_profile_or_export_success(self):
         self.produce_plugin_pack = False
         with self.assertRaisesRegex(SystemExit, "expected source-built tarballs"):
@@ -121,6 +149,27 @@ class PrepareTests(unittest.TestCase):
         self.assertEqual(len(self.commands), 1)
         self.assertFalse(self.github_env.exists())
         self.assertFalse((self.log / "prepared.json").exists())
+
+
+class TarballTests(unittest.TestCase):
+    def test_tarball_must_be_a_regular_artifact_inside_the_output_directory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            packs = root / "packs with spaces"
+            packs.mkdir()
+            outside = root / "outside.tgz"
+            outside.write_bytes(b"fixture")
+            artifact = packs / "artifact.tgz"
+            artifact.symlink_to(outside)
+            with self.assertRaisesRegex(SystemExit, "escaped output directory"):
+                prepare.find_tarball(packs)
+            artifact.unlink()
+            artifact.mkdir()
+            with self.assertRaisesRegex(SystemExit, "expected exactly one"):
+                prepare.find_tarball(packs)
+            artifact.rmdir()
+            artifact.write_bytes(b"fixture")
+            self.assertEqual(prepare.find_tarball(packs), artifact.resolve())
 
 
 if __name__ == "__main__":
