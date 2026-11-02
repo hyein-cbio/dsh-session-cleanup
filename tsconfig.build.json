@@ -6,8 +6,7 @@
     "noEmit": false,
     "outDir": "lib",
     "rootDir": ".",
-    "declaration": false,
-    "noCheck": true
+    "declaration": false
   },
   "include": [
     "dsh-entry.ts",

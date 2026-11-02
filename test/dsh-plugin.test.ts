@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import sessionCleanupExtension from "../src/index.js";
-import { apply, dshPluginApplied, inject, name } from "../src/dsh/plugin.js";
+import * as entry from "../index.js";
+import { apply, inject, name } from "../src/dsh/plugin.js";
 
-test("apply registers /nix and disposes the applied flag", async () => {
+test("package entry exports only the native DSH plugin", () => {
+  assert.deepEqual(Object.keys(entry).sort(), ["apply", "inject", "name"]);
+  assert.equal(entry.apply, apply);
+  assert.equal(entry.name, "dsh-session-cleanup");
+  assert.deepEqual(entry.inject, ["commands"]);
+});
+
+test("apply registers /nix and disposes command registration", async () => {
   assert.equal(name, "dsh-session-cleanup");
   assert.deepEqual(inject, ["commands"]);
 
@@ -33,7 +40,6 @@ test("apply registers /nix and disposes the applied flag", async () => {
     },
   });
 
-  assert.equal(dshPluginApplied(), true);
   assert.deepEqual(registered, ["nix"]);
   const nixHelp = await handlers.get("nix")!({ rawInput: "help" });
   assert.match(nixHelp.text ?? "", /Usage: \/nix/);
@@ -41,7 +47,6 @@ test("apply registers /nix and disposes the applied flag", async () => {
 
   effectCleanup?.();
   assert.equal(disposed, 1);
-  assert.equal(dshPluginApplied(), false);
 });
 
 test("apply throws when the host has no command registry", () => {
@@ -49,37 +54,4 @@ test("apply throws when the host has no command registry", () => {
     () => apply({ get: () => undefined }),
     /requires ctx.commands/,
   );
-});
-
-test("Pi extension skips command registration after the DSH plugin is applied", () => {
-  const commands: string[] = [];
-  let reset: (() => void) | undefined;
-  apply({
-    commands: {
-      register(definition) {
-        commands.push(`dsh:${definition.name}`);
-        return () => undefined;
-      },
-    },
-    get: () => undefined,
-    effect(fn) {
-      reset = fn();
-    },
-  });
-
-  try {
-    sessionCleanupExtension({
-      registerCommand(name: string) {
-        commands.push(`pi:${name}`);
-      },
-      on() {
-        return undefined;
-      },
-    } as never);
-
-    assert.deepEqual(commands, ["dsh:nix"]);
-  } finally {
-    reset?.();
-    assert.equal(dshPluginApplied(), false);
-  }
 });

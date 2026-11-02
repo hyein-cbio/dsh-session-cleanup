@@ -331,7 +331,7 @@ test("deleteDshSession completes when nothing else holds the event loop", async 
   try {
     const status = await new Promise<number | null>((resolve, reject) => {
       let settled = false;
-      let timer: { unref?(): void } | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
       const finish = (code: number | null): void => {
         if (settled) {
           return;

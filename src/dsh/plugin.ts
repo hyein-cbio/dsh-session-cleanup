@@ -6,12 +6,6 @@ import { registerNixCommandTree, registerNixSwitchScene } from "./tui-switch.js"
 export const name = "dsh-session-cleanup";
 export const inject = ["commands"];
 
-let applied = false;
-
-export function dshPluginApplied(): boolean {
-  return applied;
-}
-
 interface CommandsService {
   register(definition: {
     name: string;
@@ -35,7 +29,6 @@ export function apply(ctx: DshHostContext & {
     throw new Error("dsh-session-cleanup requires ctx.commands");
   }
 
-  applied = true;
   const disposers = [
     commands.register({
       name: SESSION_NIX_COMMAND,
@@ -57,7 +50,6 @@ export function apply(ctx: DshHostContext & {
       for (const dispose of disposers) {
         dispose();
       }
-      applied = false;
     });
   }
 }

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { isOrphanedSession } from "../src/session-source.js";
+import { isOrphanedSession } from "../src/orphaned.js";
 
 test("isOrphanedSession treats missing or blank cwd as orphaned", () => {
   assert.equal(isOrphanedSession({}), true);

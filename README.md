@@ -78,6 +78,7 @@ Both destructive commands ask for confirmation when `userQuestions` is mounted (
 ## Development
 
 ```bash
+npm ci           # install TypeScript and Node.js types only
 npm run build    # emit lib/dsh-entry.js for DSH
 npm run test     # test suite
 npm run check    # build + TypeScript/Python tests
@@ -87,7 +88,7 @@ npm run check    # build + TypeScript/Python tests
 
 Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.5` with dsh-TUI `v0.18.0` is verified on Linux only. That TUI release names `0.2.1-rc.5` as `UPSTREAM_VALIDATED_VERSION`. Harness `dsh-v0.2.2-alpha.2` is outside that list and was not tested with `v0.18.0`. The older pair, Harness `0.2.1-rc.3` with dsh-TUI `v0.17.0`, stays verified on Linux. Harness `dsh-v0.2.2-alpha.2` with dsh-TUI `v0.17.0` is not supported.
 
-Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`.
+Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`. This package has no npm runtime dependencies; the DSH host supplies the required services.
 
 ## Attribution
 

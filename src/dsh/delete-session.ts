@@ -133,7 +133,7 @@ async function stopAgentIfRunning(ctx: DshHostContext, sessionId: string): Promi
       // This cap has to stay ref'd. Clearing it when idle settles keeps a
       // successful stop from holding the process, but an unref'd timer would
       // let the process exit while whenIdle is still pending.
-      let idleTimer: { unref?(): void } | undefined;
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
       try {
         await Promise.race([
           agent.whenIdle(),
