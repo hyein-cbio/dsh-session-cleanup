@@ -13,13 +13,19 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(name: str, args: list[str], cwd: Path, env: dict[str, str], log: Path) -> None:
+def run(name: str, args: list[str], cwd: Path, env: dict[str, str], log: Path,
+        *, capture_stdout: bool = False) -> str | None:
     print(f"{name}: {' '.join(args)}", flush=True)
     with (log / f"{name}.log").open("w") as output:
-        result = subprocess.run(args, cwd=cwd, env=env, stdout=output, stderr=subprocess.STDOUT)
+        result = subprocess.run(args, cwd=cwd, env=env, text=True,
+                                stdout=subprocess.PIPE if capture_stdout else output,
+                                stderr=output if capture_stdout else subprocess.STDOUT)
+        if capture_stdout:
+            output.write(result.stdout)
     if result.returncode:
         print((log / f"{name}.log").read_text(errors="replace"), flush=True)
         raise SystemExit(f"{name} failed ({result.returncode}); see {log / f'{name}.log'}")
+    return result.stdout if capture_stdout else None
 
 
 def main() -> None:
@@ -61,9 +67,10 @@ def main() -> None:
     packs = home / "tarballs"
     packs.mkdir(parents=True)
     run("tui-pack", ["pnpm", "pack", "--config.node-linker=hoisted", "--pack-destination", str(packs)], tui, env, log)
-    run("plugin-pack", ["npm", "pack", "--pack-destination", str(packs)], ROOT, env, log)
+    packed = run("plugin-pack", ["npm", "pack", "--json", "--pack-destination", str(packs)],
+                 ROOT, env, log, capture_stdout=True)
     tui_pack = packs / "deepseek-harness-tui-dsh-tui-0.18.0.tgz"
-    plugin_pack = packs / "dsh-session-cleanup-0.2.1.tgz"
+    plugin_pack = packs / json.loads(packed)[0]["filename"]
     if not tui_pack.is_file() or not plugin_pack.is_file():
         raise SystemExit("expected source-built tarballs were not produced")
     profile.mkdir(parents=True)

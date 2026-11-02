@@ -39,6 +39,8 @@ class PrepareTests(unittest.TestCase):
         self.commands = []
         self.bad_head = False
         self.failed_step = None
+        self.plugin_filename = "dsh-session-cleanup-0.2.1.tgz"
+        self.produce_plugin_pack = True
         self.runner = patch.object(prepare.subprocess, "run", side_effect=self.invoke)
         self.runner.start()
         self.addCleanup(self.runner.stop)
@@ -48,11 +50,18 @@ class PrepareTests(unittest.TestCase):
             head = "b830ec950faba0a46dda564be3e2d854afed94f1" if args[2] == str(self.harness) else "1d0d946f459da5149aba64cc6cc0ef7da304053c"
             return subprocess.CompletedProcess(args, 0, stdout="wrong" if self.bad_head else head)
         self.commands.append((args, kwargs["cwd"], kwargs["env"].copy()))
+        stdout = None
         if args[1] == "pack":
             packs = Path(args[args.index("--pack-destination") + 1])
-            name = "dsh-session-cleanup-0.2.1.tgz" if args[0] == "npm" else "deepseek-harness-tui-dsh-tui-0.18.0.tgz"
-            (packs / name).write_bytes(b"fixture")
-        return subprocess.CompletedProcess(args, 1 if args[1] == self.failed_step else 0)
+            name = self.plugin_filename if args[0] == "npm" else "deepseek-harness-tui-dsh-tui-0.18.0.tgz"
+            if args[0] != "npm" or self.produce_plugin_pack:
+                (packs / name).write_bytes(b"fixture")
+            if args[0] == "npm":
+                self.assertIn("--json", args)
+                self.assertEqual(kwargs["stdout"], subprocess.PIPE)
+                kwargs["stderr"].write("npm warning: fixture diagnostic\n")
+                stdout = json.dumps([{"filename": name}])
+        return subprocess.CompletedProcess(args, 1 if args[1] == self.failed_step else 0, stdout=stdout)
 
     def test_bootstrap_builds_pinned_sources_and_exports_real_profile_paths(self):
         prepare.main()
@@ -71,6 +80,23 @@ class PrepareTests(unittest.TestCase):
         self.assertNotIn("allow-version", install)
         self.assertIn(f"DSH_COMPAT_CWD={cwd}\n", self.github_env.read_text())
         self.assertTrue((self.log / "prepared.json").is_file())
+
+    def test_plugin_tarball_filename_comes_from_npm_pack_json(self):
+        self.plugin_filename = "renamed-plugin-0.3.0-beta.1.tgz"
+        prepare.main()
+        install, _cwd, _env = self.commands[-1]
+        self.assertIn(f"file:{self.home / 'tarballs' / self.plugin_filename}", install)
+        pack_log = (self.log / "plugin-pack.log").read_text()
+        self.assertIn("npm warning: fixture diagnostic", pack_log)
+        self.assertIn(self.plugin_filename, pack_log)
+
+    def test_missing_plugin_tarball_does_not_install_profile_or_export_success(self):
+        self.produce_plugin_pack = False
+        with self.assertRaisesRegex(SystemExit, "expected source-built tarballs"):
+            prepare.main()
+        self.assertFalse((self.home / ".dsh").exists())
+        self.assertFalse(self.github_env.exists())
+        self.assertFalse((self.log / "prepared.json").exists())
 
     def test_existing_home_is_not_modified(self):
         self.home.mkdir()
