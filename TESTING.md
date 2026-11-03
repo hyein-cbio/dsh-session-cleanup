@@ -2,7 +2,7 @@
 
 This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and [dsh-TUI](https://github.com/ccch1mneyyy/dsh-TUI) with its DSH backend. Official Harness alone is not enough. GitHub Releases are the only upstream release source.
 
-The historical verified results below are Linux x86_64 only. They say nothing about macOS Trash.
+The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x86_64 permanent deletion for the pinned upstream pair. Earlier local and Linux-only results remain separate historical records.
 
 ## GitHub Actions CI
 
@@ -19,13 +19,70 @@ The driver initializes missing workspace storage by booting and cleanly exiting 
 
 Each live job is bounded to 45 minutes. Build/install logs and PTY evidence are uploaded even on failure as `upstream-compat-<runner>-<attempt>` artifacts, retained for 14 days. A successful build or package-check job is **not** a live compatibility pass: require the live job to succeed, `LIVE_OK`, and `live-full.json` with no failed or skipped assertions. Failures such as a missing switch scene remain failures; the workflow does not disable the switch assertion to make CI green.
 
-Manual run after the workflow reaches the default branch: GitHub **Actions → CI → Run workflow**, or `gh workflow run ci.yml --ref main`. Inspect both OS jobs and download their artifacts. Adding this workflow does not retroactively verify either platform; record successful run URLs and platform details before updating the verified results below.
+Manual run after the workflow reaches the default branch: GitHub **Actions → CI → Run workflow**, or `gh workflow run ci.yml --ref main`. Inspect both OS jobs and download their artifacts. The hosted verification below records the successful run, platform details, and reviewed artifacts; future runs need the same evidence before extending that record.
 
-During workflow development, local macOS arm64 source builds and isolated tarball installation completed with Node `26.13.0`. The real PTY run passed boot, help, cancellation, native-addon provenance, resume, and the cache-existence precondition, but failed confirmed `/nix`: the TUI reported `dsh-tui has no nix switch scene registered.` This is a failing integration result, not a macOS compatibility pass. Hosted Node `22.23.4` results must be checked separately.
+During workflow development, local macOS arm64 source builds and isolated tarball installation completed with Node `26.13.0`. The real PTY run passed boot, help, cancellation, native-addon provenance, resume, and the cache-existence precondition, but failed confirmed `/nix`: the TUI reported `dsh-tui has no nix switch scene registered.` This is a failing integration result, not a macOS compatibility pass. The hosted Node `22.23.4` results are recorded separately below.
 
-## Verified pair
+## Hosted verification (2026-11-02)
 
-GitHub Latest for dsh-TUI is `v0.18.0`. That commit's `src/dsh-adapter/contract.ts` sets `UPSTREAM_VALIDATED_VERSION` to `0.2.1-rc.5`, and that string is also the greatest entry in `UPSTREAM_VALIDATED_VERSIONS`. npm semver `7.8.5` with `includePrerelease: true` says `0.2.1-rc.5` satisfies all 36 `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer ranges on that commit at once. This is the first verification of this pair. The earlier verified pair, dsh-TUI `v0.17.0` with Harness `0.2.1-rc.3`, is unchanged and is recorded below.
+[CI run 41524817863](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863) finished successfully at **2026-11-02 22:43:35 UTC** (final attempt 5). The two package jobs and two live PTY jobs are successful in the final run view. This is verification of the pinned pair below on the two recorded platforms.
+
+| Component | Version | Exact source commit |
+| --- | --- | --- |
+| dsh-session-cleanup | `0.2.2` | [`111702f6b25c4f73bce7e087e1d58c316d81b77c`](https://github.com/hyein-cbio/dsh-session-cleanup/commit/111702f6b25c4f73bce7e087e1d58c316d81b77c) |
+| DeepSeek Harness | `0.2.1-rc.5` (`dsh-v0.2.1-rc.5`) | [`b830ec950faba0a46dda564be3e2d854afed94f1`](https://github.com/deepseek-ai/deepseek-harness/commit/b830ec950faba0a46dda564be3e2d854afed94f1) |
+| dsh-TUI | `0.18.0` (`v0.18.0`) | [`1d0d946f459da5149aba64cc6cc0ef7da304053c`](https://github.com/ccch1mneyyy/dsh-TUI/commit/1d0d946f459da5149aba64cc6cc0ef7da304053c) |
+
+Both live reports record Node `v22.23.4` and the exact upstream HEADs above. The jobs used Python `3.12.10` on macOS and `3.12.15` on Ubuntu, with pnpm `11.28.5` on both. Harness was built from source, including its native addon; the real checkout CLI installed the source-built TUI and plugin tarballs into a disposable profile. No model calls were made.
+
+### Platform results and attempts
+
+| Platform | Package checks | Real upstream PTY | `live-full.json` passed / failed / skipped | Deletion observed during confirmed `/nix` |
+| --- | --- | --- | --- | --- |
+| `macos-15`: macOS 15.8.2 (24H232), ARM64; Darwin 24.6.0 | [success](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863/job/125594448515) | [success, `LIVE_OK`](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863/job/125594446888) | **33 / 0 / 0** | `trash` provider; `switch-trash` passed; no observed `rmSync` removal |
+| `ubuntu-24.04`: Ubuntu 24.04.5 LTS, x86_64; Linux 7.0.0-1017-azure | [success](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863/job/125594500088) | [success, `LIVE_OK`](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863/job/125594449700) | **32 / 0 / 0** | `rmSync` permanent removal; no Trash assertion on Linux |
+
+These successes accumulated across retries of the same plugin commit. Ubuntu package checks first passed in attempt 1; macOS package checks and Ubuntu live PTY passed in attempt 3; macOS live PTY passed in attempt 5. Successful jobs were carried forward into the final attempt's job view, rather than all four being executed afresh in attempt 5. The macOS `LIVE_OK` timestamp is 22:43:24 UTC; Ubuntu's is 21:45:34 UTC. Earlier macOS package attempts 1–2 and live attempts 3–4 were cancelled; they are not compatibility passes. The skipped live jobs in attempts 1–2 are also not passes. Zero skipped assertions refers to the two successful live reports, not to the entire run history.
+
+Both package jobs passed `npm ci`, `npm run check`, `npm pack --dry-run`, and `git diff --exit-code && git diff --check`. Each reported **45 TypeScript tests passed, 0 failed, 0 skipped**, plus **35 Python driver/bootstrap regression tests, OK**. Those counts are separate from the live assertions. Expected negative-case `[FAIL]` messages in the regression-test output are not failures of the successful live suite.
+
+### Assertion review
+
+On 2026-11-03, both ZIP artifacts were downloaded, their SHA-256 digests matched the Actions metadata, and every entry in `live-full.json` was checked against its totals, notes, and `switch-deletions.jsonl`. All 32 shared assertions have `ok: true`; the only additional macOS assertion is `switch-trash`, also true.
+
+| Assertions (same names in both reports unless noted) | What passed |
+| --- | --- |
+| `source-roots`, `harness-commit`, `tui-commit`, `source-versions`, `host-checkout` | Required source roots, exact upstream commits/versions, and the checkout CLI path |
+| `profile-file-deps`, `installed-versions` | Profile dependencies are local tarballs; installed plugin `0.2.2` and TUI `0.18.0` match their source manifests |
+| `initialize-workspace`, `boot`, `host-cmdline`, `flock-addon` | Real host startup and CLI provenance; loaded native addon comes from the Harness checkout (`darwin-arm64/bin/system.node` or `linux-x64/bin/glibc/system.node`) |
+| `help`, `confirm-dialog`, `cancel` | `/nix help`, confirmation, and cancellation preserving existing session IDs, directories, and logs |
+| `rename-control`, `new`, `rename-doomed`, `exit-setup`, `control-stable-before-resume`, `switch-targets`, `resume` | Distinct control/doomed sessions, clean setup exit, unchanged control log, existing deletion target, and resumed pinned/archived state |
+| `switch-dialog`, `switch-proj-before`, `switch-order` | Confirmation and existing projection cache before deletion; the ultimately adopted session ID is already present at the real deletion boundary |
+| `switch-trash` (macOS only) | Observed Trash operations and no permanent `rmSync` removal |
+| `switch-proj`, `switch`, `usable` | Old directory, projection cache, workspace membership, pins, and archive references removed; control session preserved; adopted session accepts `/nix help` |
+| `quit-dialog`, `quit`, `quit-cleanup` | Confirmed `/nix quit` exits 0 and removes the adopted session and deleted IDs/references while retaining the control session and its pin |
+| `restart`, `restart-exit` | Restart does not recreate either deleted directory/ID, control log remains unchanged, and the restarted host exits 0 |
+
+In both deletion traces, the doomed directory exists in `before-delete`, the new adopted ID is already in workspace `sessionIds`, and the directory is absent in `after-delete`. macOS records operation `trash` for both events; Ubuntu records `rmSync`. This directly supports the switch-before-removal ordering and distinguishes Trash from permanent removal.
+
+### Evidence and limits
+
+| Artifact | ID | Created (UTC, 2026-11-02) | Expires (UTC, 2026-11-16) | ZIP SHA-256 |
+| --- | --- | --- | --- | --- |
+| [`upstream-compat-macos-15-5`](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863/artifacts/13186605337) | `13186605337` | 22:43:27 | 22:43:24 | `86ab5506edc0cf2046df68291acc46c2737938bceb7132c253adf55849516343` |
+| [`upstream-compat-ubuntu-24.04-3`](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863/artifacts/13180923845) | `13180923845` | 21:45:35 | 21:45:34 | `be4bd68b9818ff3f10ef612ff30d76f48a2e8176accf53ded378b9f780722542` |
+
+Each artifact contains `live-full.json`, `switch-deletions.jsonl`, `prepared.json`, and source build/pack/install logs. Artifact links are subject to retention; the counts, assertion inventory, provenance, and operation summary above record what was reviewed.
+
+The live switch scene was present on both platforms. Neither run disabled it to exercise refusal without deletion; that branch remains covered by a stubbed unit test, as both reports' notes state. The macOS deletion trace observes the doomed session during confirmed `/nix`; it does not inspect Trash contents, test restoration, or establish which deletion provider `/nix quit` used. The `trash` provider succeeded during the observed switch, so the headless filesystem Trash fallback and other providers were not exercised there. Linux verifies permanent removal, not Linux Trash integration.
+
+This record covers these source commits, Node version, hosted architectures, and slash-command flows only. It does not verify other upstream versions, Intel macOS, Linux ARM64, authenticated/model-backed conversations, or every failure/recovery path. Reviewing this evidence did not rerun the PTY suite.
+
+The earlier local macOS Node `26.13.0` missing-switch-scene failure remains a failure in its own environment. The hosted Node `22.23.4` successes do not turn that local result into a pass or establish its cause. The older Linux runs and incompatible upstream pair below remain historical records with their original versions and counts.
+
+## Historical Linux verification (dsh-TUI v0.18.0)
+
+At the time of this original Linux verification, GitHub Latest for dsh-TUI was `v0.18.0`. That commit's `src/dsh-adapter/contract.ts` sets `UPSTREAM_VALIDATED_VERSION` to `0.2.1-rc.5`, and that string is also the greatest entry in `UPSTREAM_VALIDATED_VERSIONS`. npm semver `7.8.5` with `includePrerelease: true` says `0.2.1-rc.5` satisfies all 36 `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer ranges on that commit at once. This was the first verification of this pair. The earlier verified pair, dsh-TUI `v0.17.0` with Harness `0.2.1-rc.3`, is unchanged and is recorded below.
 
 | Cell | Harness | dsh-TUI | Result |
 | --- | --- | --- | --- |
@@ -33,7 +90,7 @@ GitHub Latest for dsh-TUI is `v0.18.0`. That commit's `src/dsh-adapter/contract.
 
 Node `v22.23.4`. Kernel `Linux 6.12.94+ x86_64`. Plugin commit `459d04c992a33ac437897639fb336de789e0002f`. Package version stayed `0.2.1`.
 
-Harness `dsh-v0.2.2-alpha.2` is outside `UPSTREAM_VALIDATED_VERSIONS` and fails every harness peer range on this TUI commit. It was not tested. No DeepSeek Harness GitHub release is newer than `dsh-v0.2.1-rc.5`. Older supported lines (`0.2.1-rc.4`, `0.2.1-rc.3`, and the rest of the explicit list) were not part of this run.
+Harness `dsh-v0.2.2-alpha.2` is outside `UPSTREAM_VALIDATED_VERSIONS` and fails every harness peer range on this TUI commit. It was not tested. At the time of this original run, no DeepSeek Harness GitHub release was newer than `dsh-v0.2.1-rc.5`. Older supported lines (`0.2.1-rc.4`, `0.2.1-rc.3`, and the rest of the explicit list) were not part of this run.
 
 ### Harness `dsh-v0.2.1-rc.5`
 
@@ -88,7 +145,7 @@ Isolated `HOME` / `DSH_HOME` / XDG tree under `/tmp/compat-sandbox`. `DSH_TUI_NO
 
 The switch scene was present, so this run exercised the real switch. It did not disable that scene. When the scene is missing, `/nix` is supposed to refuse without deleting; that branch is the unit test `DSH /nix does not delete when the TUI refuses to switch` and was not re-enacted live.
 
-macOS Trash was not tested.
+macOS Trash was not tested in this historical Linux run.
 
 ### Re-running the live harness
 
@@ -102,7 +159,7 @@ The resumed host loads the test-only `scripts/observe-session-delete.cjs` preloa
 
 Immediately before accepting the switch confirmation, `switch-proj-before` requires the doomed session's projection cache file to exist. If the host did not create it, the run fails without confirming deletion; absence afterward alone is not evidence of cleanup.
 
-The 24-assertion result above is the original recorded run, not a rerun of this hardened driver. Driver regressions run with `npm run test:live-driver` (Python 3 and Node required), also included in `npm run check`. They exercise immediate real Node deletion with ESM imports, reversed/missing deletion evidence, cache-present/cache-missing confirmation, and source identity/version checks before profile mutation. These tests do not establish upstream compatibility; the hardened live PTY run still needs a source-built upstream environment on the platform under test.
+The 24-assertion result above is the original recorded run, not a rerun of this hardened driver. Driver regressions run with `npm run test:live-driver` (Python 3 and Node required), also included in `npm run check`. They exercise immediate real Node deletion with ESM imports, reversed/missing deletion evidence, cache-present/cache-missing confirmation, and source identity/version checks before profile mutation. These tests do not establish upstream compatibility; the later hosted runs above provide separate results for the hardened driver on both recorded platforms.
 
 Hardening checks on macOS with Node `v26.13.0` and Python `3.15.2`: `npm ci`, `npm run check` (75 plugin tests + 14 driver regression tests; no failures or skips), `npm pack --dry-run`, and `git diff --check` passed. The Linux live PTY run was not repeated in this environment.
 
