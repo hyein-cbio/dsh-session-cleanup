@@ -1,0 +1,503 @@
+{
+  "recorded_utc": "2026-11-06T15:05:00Z",
+  "source": "Full reports and deletion traces parsed from completed GitHub Actions job logs; artifact digests below are Actions metadata, not independently downloaded ZIP hashes.",
+  "normalization": "Runner checkout, sandbox and Node installation paths replaced with placeholders; runner hostname omitted. Assertion names, UUIDs, counts and deletion events preserved.",
+  "workflow_run": 42238899327,
+  "workflow_url": "https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327",
+  "tested_branch_head": "cdb2ce98bdf4c809cf5fc57257a766a4ff3e8002",
+  "plugin_runtime_source": "31966db86769567c1e0e15c49d77f7c3428349a8 (src unchanged)",
+  "platform": "Ubuntu 24.04.5 LTS, Linux x86_64",
+  "cases": {
+    "validated": {
+      "job_id": 127963796656,
+      "job_url": "https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327/job/127963796656",
+      "conclusion": "success",
+      "live_ok": true,
+      "report": {
+        "passed": 32,
+        "failed": 0,
+        "skipped": 0,
+        "notes": [
+          "The live TUI exposed the switch scene, so confirmed /nix adopted a new session before deleting the old one. The refuse-without-delete branch applies only when that scene is missing. This run did not disable it. Unit test \"DSH /nix does not delete when the TUI refuses to switch\" covers that branch with a stubbed switch result."
+        ],
+        "provenance": {
+          "harnessHead": "b830ec950faba0a46dda564be3e2d854afed94f1",
+          "tuiHead": "1d0d946f459da5149aba64cc6cc0ef7da304053c",
+          "node": "v22.23.4",
+          "uname": "Linux <runner> 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64 x86_64",
+          "hostNode": "${NODE22_ROOT}/bin/node"
+        },
+        "assertions": [
+          {
+            "name": "source-roots",
+            "ok": true,
+            "detail": "DSH_COMPAT_HARNESS_ROOT and DSH_COMPAT_TUI_ROOT are required"
+          },
+          {
+            "name": "harness-commit",
+            "ok": true,
+            "detail": "expected=b830ec950faba0a46dda564be3e2d854afed94f1 actual=b830ec950faba0a46dda564be3e2d854afed94f1"
+          },
+          {
+            "name": "tui-commit",
+            "ok": true,
+            "detail": "expected=1d0d946f459da5149aba64cc6cc0ef7da304053c actual=1d0d946f459da5149aba64cc6cc0ef7da304053c"
+          },
+          {
+            "name": "source-versions",
+            "ok": true,
+            "detail": "harness 0.2.1-rc.5 tui 0.18.0"
+          },
+          {
+            "name": "host-checkout",
+            "ok": true,
+            "detail": "${CHECKOUT}/.ci-upstreams/harness/apps/cli/lib/bin.js"
+          },
+          {
+            "name": "profile-file-deps",
+            "ok": true,
+            "detail": "{\"@deepseek-harness-tui/dsh-tui\": \"file:${SANDBOX_HOME}/tarballs/tui/deepseek-harness-tui-dsh-tui-0.18.0.tgz\", \"dsh-session-cleanup\": \"file:${SANDBOX_HOME}/tarballs/dsh-session-cleanup-0.2.2.tgz\"}"
+          },
+          {
+            "name": "installed-versions",
+            "ok": true,
+            "detail": "plugin expected=dsh-session-cleanup@0.2.2 actual=dsh-session-cleanup@0.2.2; tui expected=@deepseek-harness-tui/dsh-tui@0.18.0 actual=@deepseek-harness-tui/dsh-tui@0.18.0"
+          },
+          {
+            "name": "initialize-workspace",
+            "ok": true,
+            "detail": "exit=0"
+          },
+          {
+            "name": "boot",
+            "ok": true,
+            "detail": "chat composer ready"
+          },
+          {
+            "name": "host-cmdline",
+            "ok": true,
+            "detail": "${NODE22_ROOT}/bin/node ${CHECKOUT}/.ci-upstreams/harness/apps/cli/lib/bin.js --profile dsh-tui "
+          },
+          {
+            "name": "help",
+            "ok": true,
+            "detail": "Usage: /nix rendered"
+          },
+          {
+            "name": "confirm-dialog",
+            "ok": true,
+            "detail": "confirmation open"
+          },
+          {
+            "name": "cancel",
+            "ok": true,
+            "detail": "ids kept ['57aa2b24-887d-4aad-bf28-aae5bfb26014']"
+          },
+          {
+            "name": "rename-control",
+            "ok": true,
+            "detail": "57aa2b24-887d-4aad-bf28-aae5bfb26014"
+          },
+          {
+            "name": "flock-addon",
+            "ok": true,
+            "detail": "[\"${CHECKOUT}/.ci-upstreams/harness/native/system/packages/linux-x64/bin/glibc/system.node\"]"
+          },
+          {
+            "name": "new",
+            "ok": true,
+            "detail": "doomed=45e48496-9209-4f8d-8da3-926458fac5c8 control=57aa2b24-887d-4aad-bf28-aae5bfb26014"
+          },
+          {
+            "name": "rename-doomed",
+            "ok": true,
+            "detail": "${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/45e48496-9209-4f8d-8da3-926458fac5c8"
+          },
+          {
+            "name": "exit-setup",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "control-stable-before-resume",
+            "ok": true,
+            "detail": "963053ab6e3e"
+          },
+          {
+            "name": "switch-targets",
+            "ok": true,
+            "detail": "doomed session directory exists before resume"
+          },
+          {
+            "name": "resume",
+            "ok": true,
+            "detail": "resumed 45e48496-9209-4f8d-8da3-926458fac5c8 pins=['45e48496-9209-4f8d-8da3-926458fac5c8', '57aa2b24-887d-4aad-bf28-aae5bfb26014']"
+          },
+          {
+            "name": "switch-dialog",
+            "ok": true,
+            "detail": "confirmation open for doomed session"
+          },
+          {
+            "name": "switch-proj-before",
+            "ok": true,
+            "detail": "projection cache must exist for 45e48496-9209-4f8d-8da3-926458fac5c8"
+          },
+          {
+            "name": "switch-order",
+            "ok": true,
+            "detail": "[{\"event\": \"before-delete\", \"target\": \"${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/45e48496-9209-4f8d-8da3-926458fac5c8\", \"operation\": \"rmSync\", \"exists\": true, \"ids\": [\"8ecca3b8-b811-4a76-a989-5255cf7edee4\", \"45e48496-9209-4f8d-8da3-926458fac5c8\", \"57aa2b24-887d-4aad-bf28-aae5bfb26014\"]}, {\"event\": \"after-delete\", \"target\": \"${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/45e48496-9209-4f8d-8da3-926458fac5c8\", \"operation\": \"rmSync\", \"exists\": false, \"ids\": [\"8ecca3b8-b811-4a76-a989-5255cf7edee4\", \"45e48496-9209-4f8d-8da3-926458fac5c8\", \"57aa2b24-887d-4aad-bf28-aae5bfb26014\"]}]"
+          },
+          {
+            "name": "switch-proj",
+            "ok": true,
+            "detail": "doomed projection cache removed"
+          },
+          {
+            "name": "switch",
+            "ok": true,
+            "detail": "adopted=8ecca3b8-b811-4a76-a989-5255cf7edee4 doomed removed control kept"
+          },
+          {
+            "name": "usable",
+            "ok": true,
+            "detail": "adopted session accepted /nix help"
+          },
+          {
+            "name": "quit-dialog",
+            "ok": true,
+            "detail": "quit confirmation open"
+          },
+          {
+            "name": "quit",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "quit-cleanup",
+            "ok": true,
+            "detail": "adopted removed, control remains, deleted ids not recreated"
+          },
+          {
+            "name": "restart",
+            "ok": true,
+            "detail": "deleted ids stay gone; control 57aa2b24-887d-4aad-bf28-aae5bfb26014 remains"
+          },
+          {
+            "name": "restart-exit",
+            "ok": true,
+            "detail": "exit=0"
+          }
+        ]
+      },
+      "deletion_trace": [
+        {
+          "event": "before-delete",
+          "target": "${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/45e48496-9209-4f8d-8da3-926458fac5c8",
+          "operation": "rmSync",
+          "exists": true,
+          "ids": [
+            "8ecca3b8-b811-4a76-a989-5255cf7edee4",
+            "45e48496-9209-4f8d-8da3-926458fac5c8",
+            "57aa2b24-887d-4aad-bf28-aae5bfb26014"
+          ]
+        },
+        {
+          "event": "after-delete",
+          "target": "${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/45e48496-9209-4f8d-8da3-926458fac5c8",
+          "operation": "rmSync",
+          "exists": false,
+          "ids": [
+            "8ecca3b8-b811-4a76-a989-5255cf7edee4",
+            "45e48496-9209-4f8d-8da3-926458fac5c8",
+            "57aa2b24-887d-4aad-bf28-aae5bfb26014"
+          ]
+        }
+      ],
+      "lifecycle_output": [
+        "LIFECYCLE_OK early TUI; owner, foreign refusal, removal, reload, disposal",
+        "LIFECYCLE_OK late TUI; owner, foreign refusal, removal, reload, disposal"
+      ]
+    },
+    "merged-022": {
+      "job_id": 127963796443,
+      "job_url": "https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327/job/127963796443",
+      "conclusion": "success",
+      "live_ok": true,
+      "report": {
+        "passed": 32,
+        "failed": 0,
+        "skipped": 0,
+        "notes": [
+          "The live TUI exposed the switch scene, so confirmed /nix adopted a new session before deleting the old one. The refuse-without-delete branch applies only when that scene is missing. This run did not disable it. Unit test \"DSH /nix does not delete when the TUI refuses to switch\" covers that branch with a stubbed switch result."
+        ],
+        "provenance": {
+          "harnessHead": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+          "tuiHead": "e7336a62030064daa2e4593f0ec7311c9c362b71",
+          "node": "v24.22.1",
+          "uname": "Linux <runner> 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64 x86_64",
+          "hostNode": "${NODE24_ROOT}/bin/node"
+        },
+        "assertions": [
+          {
+            "name": "source-roots",
+            "ok": true,
+            "detail": "DSH_COMPAT_HARNESS_ROOT and DSH_COMPAT_TUI_ROOT are required"
+          },
+          {
+            "name": "harness-commit",
+            "ok": true,
+            "detail": "expected=66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db actual=66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db"
+          },
+          {
+            "name": "tui-commit",
+            "ok": true,
+            "detail": "expected=e7336a62030064daa2e4593f0ec7311c9c362b71 actual=e7336a62030064daa2e4593f0ec7311c9c362b71"
+          },
+          {
+            "name": "source-versions",
+            "ok": true,
+            "detail": "harness 0.2.2-rc.1 tui 0.18.0"
+          },
+          {
+            "name": "host-checkout",
+            "ok": true,
+            "detail": "${CHECKOUT}/.ci-upstreams/harness/apps/cli/lib/bin.js"
+          },
+          {
+            "name": "profile-file-deps",
+            "ok": true,
+            "detail": "{\"@deepseek-harness-tui/dsh-tui\": \"file:${SANDBOX_HOME}/tarballs/tui/deepseek-harness-tui-dsh-tui-0.18.0.tgz\", \"dsh-session-cleanup\": \"file:${SANDBOX_HOME}/tarballs/dsh-session-cleanup-0.2.2.tgz\"}"
+          },
+          {
+            "name": "installed-versions",
+            "ok": true,
+            "detail": "plugin expected=dsh-session-cleanup@0.2.2 actual=dsh-session-cleanup@0.2.2; tui expected=@deepseek-harness-tui/dsh-tui@0.18.0 actual=@deepseek-harness-tui/dsh-tui@0.18.0"
+          },
+          {
+            "name": "initialize-workspace",
+            "ok": true,
+            "detail": "exit=0"
+          },
+          {
+            "name": "boot",
+            "ok": true,
+            "detail": "chat composer ready"
+          },
+          {
+            "name": "host-cmdline",
+            "ok": true,
+            "detail": "${NODE24_ROOT}/bin/node ${CHECKOUT}/.ci-upstreams/harness/apps/cli/lib/bin.js --profile dsh-tui "
+          },
+          {
+            "name": "help",
+            "ok": true,
+            "detail": "Usage: /nix rendered"
+          },
+          {
+            "name": "confirm-dialog",
+            "ok": true,
+            "detail": "confirmation open"
+          },
+          {
+            "name": "cancel",
+            "ok": true,
+            "detail": "ids kept ['93eb4d89-f39d-4180-a1a5-aab7c893d80d']"
+          },
+          {
+            "name": "rename-control",
+            "ok": true,
+            "detail": "93eb4d89-f39d-4180-a1a5-aab7c893d80d"
+          },
+          {
+            "name": "flock-addon",
+            "ok": true,
+            "detail": "[\"${CHECKOUT}/.ci-upstreams/harness/native/system/packages/linux-x64/bin/glibc/system.node\"]"
+          },
+          {
+            "name": "new",
+            "ok": true,
+            "detail": "doomed=621a21d5-9dbb-467e-9a10-a5082fd5dbf3 control=93eb4d89-f39d-4180-a1a5-aab7c893d80d"
+          },
+          {
+            "name": "rename-doomed",
+            "ok": true,
+            "detail": "${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/621a21d5-9dbb-467e-9a10-a5082fd5dbf3"
+          },
+          {
+            "name": "exit-setup",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "control-stable-before-resume",
+            "ok": true,
+            "detail": "c592754fd559"
+          },
+          {
+            "name": "switch-targets",
+            "ok": true,
+            "detail": "doomed session directory exists before resume"
+          },
+          {
+            "name": "resume",
+            "ok": true,
+            "detail": "resumed 621a21d5-9dbb-467e-9a10-a5082fd5dbf3 pins=['621a21d5-9dbb-467e-9a10-a5082fd5dbf3', '93eb4d89-f39d-4180-a1a5-aab7c893d80d']"
+          },
+          {
+            "name": "switch-dialog",
+            "ok": true,
+            "detail": "confirmation open for doomed session"
+          },
+          {
+            "name": "switch-proj-before",
+            "ok": true,
+            "detail": "projection cache must exist for 621a21d5-9dbb-467e-9a10-a5082fd5dbf3"
+          },
+          {
+            "name": "switch-order",
+            "ok": true,
+            "detail": "[{\"event\": \"before-delete\", \"target\": \"${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/621a21d5-9dbb-467e-9a10-a5082fd5dbf3\", \"operation\": \"rmSync\", \"exists\": true, \"ids\": [\"c2370756-49fe-4a69-be34-cd1e4ca8a938\", \"621a21d5-9dbb-467e-9a10-a5082fd5dbf3\", \"93eb4d89-f39d-4180-a1a5-aab7c893d80d\"]}, {\"event\": \"after-delete\", \"target\": \"${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/621a21d5-9dbb-467e-9a10-a5082fd5dbf3\", \"operation\": \"rmSync\", \"exists\": false, \"ids\": [\"c2370756-49fe-4a69-be34-cd1e4ca8a938\", \"621a21d5-9dbb-467e-9a10-a5082fd5dbf3\", \"93eb4d89-f39d-4180-a1a5-aab7c893d80d\"]}]"
+          },
+          {
+            "name": "switch-proj",
+            "ok": true,
+            "detail": "doomed projection cache removed"
+          },
+          {
+            "name": "switch",
+            "ok": true,
+            "detail": "adopted=c2370756-49fe-4a69-be34-cd1e4ca8a938 doomed removed control kept"
+          },
+          {
+            "name": "usable",
+            "ok": true,
+            "detail": "adopted session accepted /nix help"
+          },
+          {
+            "name": "quit-dialog",
+            "ok": true,
+            "detail": "quit confirmation open"
+          },
+          {
+            "name": "quit",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "quit-cleanup",
+            "ok": true,
+            "detail": "adopted removed, control remains, deleted ids not recreated"
+          },
+          {
+            "name": "restart",
+            "ok": true,
+            "detail": "deleted ids stay gone; control 93eb4d89-f39d-4180-a1a5-aab7c893d80d remains"
+          },
+          {
+            "name": "restart-exit",
+            "ok": true,
+            "detail": "exit=0"
+          }
+        ]
+      },
+      "deletion_trace": [
+        {
+          "event": "before-delete",
+          "target": "${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/621a21d5-9dbb-467e-9a10-a5082fd5dbf3",
+          "operation": "rmSync",
+          "exists": true,
+          "ids": [
+            "c2370756-49fe-4a69-be34-cd1e4ca8a938",
+            "621a21d5-9dbb-467e-9a10-a5082fd5dbf3",
+            "93eb4d89-f39d-4180-a1a5-aab7c893d80d"
+          ]
+        },
+        {
+          "event": "after-delete",
+          "target": "${SANDBOX_HOME}/.dsh/sessions/--home-runner-work-_temp-dsh-compat-home-.dsh-profiles-dsh-tui--/621a21d5-9dbb-467e-9a10-a5082fd5dbf3",
+          "operation": "rmSync",
+          "exists": false,
+          "ids": [
+            "c2370756-49fe-4a69-be34-cd1e4ca8a938",
+            "621a21d5-9dbb-467e-9a10-a5082fd5dbf3",
+            "93eb4d89-f39d-4180-a1a5-aab7c893d80d"
+          ]
+        }
+      ],
+      "lifecycle_output": [
+        "plugin lifecycle battery OK (113 checks)",
+        "PASS row-rewind",
+        "PASS row-rewind-pinned",
+        "PASS tree-rewind",
+        "PASS tree-rewind-pinned",
+        "PASS tree-fork",
+        "PASS tree-fork-pinned",
+        "PASS external",
+        "PASS external-upstream",
+        "PASS parked",
+        "PASS fixed-step",
+        "PASS fixed-step-no-capacity",
+        "PASS fixed-step-meter",
+        "PASS capacity-synchronous",
+        "PASS capacity-legacy-shapes",
+        "PASS metadata",
+        "PASS metadata-effort-bind",
+        "PASS metadata-effort-set",
+        "PASS metadata-disposed",
+        "PASS background",
+        "PASS restore-pinned",
+        "PASS restore-unpinned",
+        "LIFECYCLE_OK early TUI; owner, foreign refusal, removal, reload, disposal",
+        "LIFECYCLE_OK late TUI; owner, foreign refusal, removal, reload, disposal"
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "id": 13515470738,
+      "name": "upstream-compat-merged-022-ubuntu-24.04-1",
+      "size_in_bytes": 57075,
+      "url": "https://api.github.com/repos/hyein-cbio/dsh-session-cleanup/actions/artifacts/13515470738",
+      "archive_download_url": "https://api.github.com/repos/hyein-cbio/dsh-session-cleanup/actions/artifacts/13515470738/zip",
+      "expired": false,
+      "created_at": "2026-11-06T15:03:44Z",
+      "expires_at": "2026-11-20T15:03:43Z",
+      "updated_at": "2026-11-06T15:03:44Z",
+      "digest": "sha256:228ae93c662641416dfc8128b6c751c2ff90ecd3a75e992d4bd879009b77a09c",
+      "workflow_run": {
+        "id": 42238899327,
+        "repository_id": 1338285845,
+        "head_repository_id": 1338285845,
+        "head_branch": "test/final-tui-merge-20261106",
+        "head_sha": "cdb2ce98bdf4c809cf5fc57257a766a4ff3e8002"
+      }
+    },
+    {
+      "id": 13513516415,
+      "name": "upstream-compat-validated-ubuntu-24.04-1",
+      "size_in_bytes": 53123,
+      "url": "https://api.github.com/repos/hyein-cbio/dsh-session-cleanup/actions/artifacts/13513516415",
+      "archive_download_url": "https://api.github.com/repos/hyein-cbio/dsh-session-cleanup/actions/artifacts/13513516415/zip",
+      "expired": false,
+      "created_at": "2026-11-06T15:04:23Z",
+      "expires_at": "2026-11-20T15:04:22Z",
+      "updated_at": "2026-11-06T15:04:23Z",
+      "digest": "sha256:c1866ebb82030cc8ded9c409765a98a168e0f9223859c84f2984a74a1a9e0945",
+      "workflow_run": {
+        "id": 42238899327,
+        "repository_id": 1338285845,
+        "head_repository_id": 1338285845,
+        "head_branch": "test/final-tui-merge-20261106",
+        "head_sha": "cdb2ce98bdf4c809cf5fc57257a766a4ff3e8002"
+      }
+    }
+  ],
+  "limits": [
+    "All four macOS jobs remained queued when this record was written. There is no new macOS final-merge verdict and the overall workflow is not claimed successful.",
+    "Linux observes permanent rmSync removal, not macOS Trash.",
+    "Foreign activation refusal is exercised with real Cordis/TUI lifecycle code; the PTY suite does not remove the switch scene.",
+    "No model-backed activity, real global update, real user profiles, or separately published v0.19.0 artifact was tested.",
+    "Local compilation was interrupted by execution-server disconnection; earlier fixture failures and cancelled runs are not passes."
+  ]
+}

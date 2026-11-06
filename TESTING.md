@@ -50,6 +50,22 @@ Local package checks passed 48 TypeScript and 38 Python tests before the final C
 
 Every runtime profile uses a new disposable HOME with local source-built tarballs and scrubbed credentials. The PTY suite covers cancellation, adoption before removal, projection/pin/archive cleanup, preservation of an unrelated session, post-switch command use, `/nix quit`, and restart without resurrection. Foreign-owner refusal is a real Cordis/TUI lifecycle check; refusal-preserves-files also has unit coverage. The PTY suite does not deliberately remove the scene or run authenticated/model-backed activity. Linux deletion and macOS Trash are distinct assertions.
 
+### Hosted Linux verification
+
+[Run 42238899327](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327) directly tested branch head `cdb2ce98bdf4c809cf5fc57257a766a4ff3e8002` against the unchanged plugin runtime from `main@31966db`. Both Linux live jobs succeeded, with `LIVE_OK`, all 32 assertions true, and zero failed/skipped assertions. The complete reports and deletion traces were parsed from their job logs and are preserved in [`test/evidence/2026-11-06-final-tui-merge.json`](test/evidence/2026-11-06-final-tui-merge.json).
+
+| Cell and platform | Node | Real PTY passed / failed / skipped | Lifecycle |
+| --- | --- | --- | --- |
+| `validated`, Ubuntu 24.04 x86_64 | `22.23.4` | [**32 / 0 / 0**](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327/job/127963796656) | Early/late TUI, owner open, foreign-owner refusal, removal/reload, plugin disposal passed |
+| `merged-022`, Ubuntu 24.04 x86_64 | `24.22.1` | [**32 / 0 / 0**](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327/job/127963796443) | Same plugin lifecycle checks; upstream projection lifecycle **113 checks** and durable model selection **21 scenarios** passed |
+| Both cells, macOS | Planned Node 22/24 | **Queued; no new verdict** as of 15:05 UTC | Not executed |
+
+Both Node lines also passed 48 TypeScript and 38 Python tests, packing, and clean-tree/whitespace checks. All actual removal targets were under the disposable HOME. The traces show the adopted ID in workspace membership **before** `rmSync` removed the doomed directory. Cancellation preserved the old session; projection/pin/archive references were cleaned; the unrelated control session and its log survived switch, quit, and restart unchanged. The new session accepted `/nix help`, `/nix quit` exited 0, and restart did not resurrect deleted IDs/directories.
+
+No `/nix` regression was observed on Linux at these pins, so this PR changes verification and records only. It makes no new macOS Trash claim and does not claim the whole workflow is green. The November 5 macOS candidate results retain their original scope.
+
+Earlier hosted attempts are not passes: run `42237828839` stopped in the package fixture checks because the surrounding live pair leaked into old-line fixtures; run `42238111746` built/installed the old pair but the new foreign-owner fixture predated TUI composition tracking. The fixtures now select their own pair/log directory and create the foreign activation after the real TUI establishes tracking. The passing run retains the same foreign-owner refusal assertion and all PTY checks.
+
 ### Merge and release identities
 
 [TUI PR #1886](https://github.com/ccch1mneyyy/dsh-TUI/pull/1886) merged at 03:14 UTC. GitHub subsequently published [`v0.19.0`](https://github.com/ccch1mneyyy/dsh-TUI/releases/tag/v0.19.0) at **03:32:50 UTC**, pointing to `224f847d02c2157f43862d2792cf9d7459222f4c`. Its `src/`, `scripts/`, lockfile, and `cordis.patch.yml` match the merge; the release changes the package version, documentation, and feed metadata. This CI cell tests the exact merge tarball, whose manifest still says `0.18.0`. Source equality does not replace testing a separately packed or published release artifact.
