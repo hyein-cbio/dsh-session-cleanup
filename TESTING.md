@@ -4,6 +4,17 @@ This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x86_64 permanent deletion for the pinned upstream pair. Earlier local and Linux-only results remain separate historical records.
 
+## Version 0.3.0 safety changes
+
+Version `0.3.0` adds fail-closed deletion, delayed detach/accounting commit, bounded Trash provider termination, switch deadline/cancellation/disposal handling, mandatory confirmation, stable legacy picker labels, and fork-child failure isolation. Historical PTY results below verify earlier runtime artifacts, not these safety changes. A new source-built live PTY pass is still required before extending upstream compatibility claims.
+
+Local safety verification on this checkout:
+
+- `npm run check` passed on Node `26.13.0` and `22.23.4`: **71 TypeScript tests and 40 Python tests**, zero failures or skips. New tests cover retained live attachments/accounting on removal failure, scan/access errors, stop/flush refusal, non-retryable providers, full switch deadlines, abort/unmount/disposal, late-result suppression, activation isolation, command serialization, mandatory confirmation, label boundaries, provider TERM/KILL escalation and fork-child exit isolation.
+- A separate probe against the cached source-built DSH `66491b05` real `SessionStore` confirmed that failed removal retains the session and permits `flush`, unreadable storage fails closed, and successful removal commits detach.
+- `check-upstream-lifecycle.mjs` passed early/late startup, ownership, foreign refusal, removal/reload and disposal against the cached TUI candidate `fb0b5325`. This is a lifecycle check on that candidate, **not** a new live TUI `v0.19.0` pass.
+- `npm pack --dry-run` and `git diff --check` passed. The safety checks were performed before release preparation; `0.3.0` packages these changes without claiming a new full live PTY pass.
+
 ## Published dsh-TUI v0.19.0 (2026-11-06)
 
 GitHub Latest for dsh-TUI is `v0.19.0` (non-draft, non-prerelease). On that commit, `src/dsh-adapter/contract.ts` sets `UPSTREAM_VALIDATED_VERSION` to `0.2.2-rc.1`, which is also the greatest entry in `UPSTREAM_VALIDATED_VERSIONS` (alpha < beta < rc). npm semver `7.7.4` with `includePrerelease: true` says that version satisfies all 36 `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer ranges at once. The versions in the explicit list that also satisfy every harness peer range and have a published non-draft Harness release are `0.2.0-rc.2`, `0.2.1-rc.2`, `0.2.1-rc.3`, `0.2.1-rc.4`, `0.2.1-rc.5`, and `0.2.2-rc.1`. This run tested only the greatest, `0.2.2-rc.1`.

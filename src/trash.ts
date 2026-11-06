@@ -3,6 +3,8 @@ import { existsSync, renameSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
+import { pathExists } from "./fs-utils.js";
+
 const TRASH_PROVIDER_TIMEOUT_MS = 5_000;
 const TRASH_PROVIDER_MAX_STDERR_BYTES = 64 * 1024;
 
@@ -10,6 +12,7 @@ interface TrashProcessResult {
   status: number | null;
   stderr?: string;
   error?: Error;
+  unsafeToRetry?: boolean;
 }
 
 export type TrashProcessRunner = (
@@ -35,6 +38,7 @@ export interface TrashPathOptions {
 export interface TrashPathResult {
   ok: boolean;
   error?: string;
+  retryable?: boolean;
 }
 
 function argsWithDashSafety(prefix: string[], targetPath: string, suffix: string[] = []): string[] {
@@ -117,6 +121,8 @@ export function runTrashProcess(
       child = spawn(command, [...args], { // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process -- command is checked against the hardcoded TRASH_PROVIDERS command list above; args are provider-generated arrays and shell is disabled.
         stdio: ["ignore", "ignore", "pipe"],
         windowsHide: true,
+        // Own a process group so helpers cannot keep stderr (or deletion) alive.
+        detached: process.platform !== "win32",
       });
     } catch (error) {
       resolve({
@@ -130,6 +136,8 @@ export function runTrashProcess(
     let stderrBytes = 0;
     let processError: Error | undefined;
     let settled = false;
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    let drainTimer: ReturnType<typeof setTimeout> | undefined;
 
     const finish = (result: TrashProcessResult): void => {
       if (settled) {
@@ -138,14 +146,36 @@ export function runTrashProcess(
 
       settled = true;
       clearTimeout(timeout);
+      clearTimeout(killTimer);
+      clearTimeout(drainTimer);
       resolve(result);
     };
 
-    const failAndKill = (error: Error): void => {
-      if (!processError) {
-        processError = error;
+    const signalProvider = (signal: NodeJS.Signals): void => {
+      try {
+        if (process.platform !== "win32" && child.pid !== undefined) {
+          process.kill(-child.pid, signal);
+        } else {
+          child.kill(signal);
+        }
+      } catch {
+        // It may already have exited; close will confirm that below.
       }
-      child.kill();
+    };
+
+    const failAndKill = (error: Error): void => {
+      if (settled || killTimer !== undefined) return;
+      processError ??= error;
+      signalProvider("SIGTERM");
+      killTimer = setTimeout(() => {
+        signalProvider("SIGKILL");
+        drainTimer = setTimeout(() => {
+          // Do not try another deletion provider while termination is unknown.
+          child.stderr?.destroy();
+          child.unref();
+          finish({ status: null, error: processError, unsafeToRetry: true });
+        }, 250);
+      }, 250);
     };
 
     const timeout = setTimeout(() => {
@@ -219,12 +249,20 @@ export async function trashPath(
   targetPath: string,
   options: TrashPathOptions = {},
 ): Promise<TrashPathResult> {
+  try {
+    return await trashPathChecked(targetPath, options);
+  } catch (error) {
+    return { ok: false, retryable: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function trashPathChecked(targetPath: string, options: TrashPathOptions): Promise<TrashPathResult> {
   const runProcess = options.spawn ?? runTrashProcess;
-  const pathExists = options.existsSync ?? existsSync;
+  const targetExists = options.existsSync ?? pathExists;
   const moveTrash = options.moveToUserTrash ?? moveToUserTrash;
   const hints: string[] = [];
 
-  if (!pathExists(targetPath)) {
+  if (!targetExists(targetPath)) {
     return { ok: true };
   }
 
@@ -234,7 +272,10 @@ export async function trashPath(
       maxStderrBytes: TRASH_PROVIDER_MAX_STDERR_BYTES,
     });
 
-    if (result.status === 0 || !pathExists(targetPath)) {
+    if (result.unsafeToRetry) {
+      return { ok: false, retryable: false, error: "Trash provider termination could not be confirmed; no fallback was attempted." };
+    }
+    if (!targetExists(targetPath)) {
       return { ok: true };
     }
 
@@ -244,7 +285,7 @@ export async function trashPath(
     }
   }
 
-  if (moveTrash(targetPath) && !pathExists(targetPath)) {
+  if (moveTrash(targetPath) && !targetExists(targetPath)) {
     return { ok: true };
   }
 
@@ -269,12 +310,11 @@ export async function removeSessionArtifact(
     return trashPath(targetPath, options);
   }
 
-  const pathExists = options.existsSync ?? existsSync;
-  if (!pathExists(targetPath)) {
-    return { ok: true };
-  }
-
+  const targetExists = options.existsSync ?? pathExists;
   try {
+    if (!targetExists(targetPath)) {
+      return { ok: true };
+    }
     const rm = options.rm ?? ((target: string) => {
       rmSync(target, { recursive: true, force: true });
     });

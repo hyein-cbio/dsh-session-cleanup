@@ -66,40 +66,43 @@ class Tui:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
         self.pid = os.fork()
         if self.pid == 0:
-            os.setsid()
-            os.dup2(slave, 0)
-            os.dup2(slave, 1)
-            os.dup2(slave, 2)
-            if slave > 2:
-                os.close(slave)
-            os.close(self.master)
-            os.chdir(CWD)
-            env = scrub(os.environ.copy())
-            env.update({
-                "HOME": HOME,
-                "DSH_HOME": str(DSH),
-                "XDG_CONFIG_HOME": f"{HOME}/.config",
-                "XDG_DATA_HOME": f"{HOME}/.local/share",
-                "XDG_CACHE_HOME": f"{HOME}/.cache",
-                "XDG_STATE_HOME": f"{HOME}/.local/state",
-                "TERM": "xterm-256color",
-                "COLUMNS": str(COLS),
-                "LINES": str(ROWS),
-                "DSH_TUI_NO_LAUNCHPAD": "1",
-                "NO_COLOR": "1",
-                # Headless macOS may need the real filesystem Trash fallback.
-                "DSH_SESSION_TRASH_DIR": str(Path(HOME) / ".Trash"),
-            })
-            node_args: list[str] = []
-            if observe_deletions:
+            try:
+                os.setsid()
+                os.dup2(slave, 0)
+                os.dup2(slave, 1)
+                os.dup2(slave, 2)
+                if slave > 2:
+                    os.close(slave)
+                os.close(self.master)
+                os.chdir(CWD)
+                env = scrub(os.environ.copy())
                 env.update({
-                    "DSH_COMPAT_DELETE_TARGETS": json.dumps([str(p.resolve()) for p in observe_deletions]),
-                    "DSH_COMPAT_DELETE_TRACE": str(DELETE_TRACE.resolve()),
-                    "DSH_COMPAT_DELETE_WORKSPACE": str(WORKSPACE.resolve()),
+                    "HOME": HOME,
+                    "DSH_HOME": str(DSH),
+                    "XDG_CONFIG_HOME": f"{HOME}/.config",
+                    "XDG_DATA_HOME": f"{HOME}/.local/share",
+                    "XDG_CACHE_HOME": f"{HOME}/.cache",
+                    "XDG_STATE_HOME": f"{HOME}/.local/state",
+                    "TERM": "xterm-256color",
+                    "COLUMNS": str(COLS),
+                    "LINES": str(ROWS),
+                    "DSH_TUI_NO_LAUNCHPAD": "1",
+                    "NO_COLOR": "1",
+                    # Headless macOS may need the real filesystem Trash fallback.
+                    "DSH_SESSION_TRASH_DIR": str(Path(HOME) / ".Trash"),
                 })
-                node_args = ["--require", str(DELETE_OBSERVER)]
-            os.execve(CLI, [CLI, *node_args, BIN, "--profile", PROFILE, *args], env)
-            raise SystemExit(127)
+                node_args: list[str] = []
+                if observe_deletions:
+                    env.update({
+                        "DSH_COMPAT_DELETE_TARGETS": json.dumps([str(p.resolve()) for p in observe_deletions]),
+                        "DSH_COMPAT_DELETE_TRACE": str(DELETE_TRACE.resolve()),
+                        "DSH_COMPAT_DELETE_WORKSPACE": str(WORKSPACE.resolve()),
+                    })
+                    node_args = ["--require", str(DELETE_OBSERVER)]
+                os.execve(CLI, [CLI, *node_args, BIN, "--profile", PROFILE, *args], env)
+            finally:
+                # Never unwind the parent's copied Python stack after fork.
+                os._exit(127)
         os.close(slave)
         self.screen = Screen(ROWS, COLS)
         self.raw = bytearray()

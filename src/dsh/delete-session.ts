@@ -1,8 +1,9 @@
-import { existsSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { getErrorMessage } from "../error-utils.js";
+import { isMissingPath, pathExists } from "../fs-utils.js";
 import { removeSessionArtifact } from "../trash.js";
 import { optionalService, type DshHostContext } from "./host.js";
 import { isSessionId, sessionIdVariants } from "./ids.js";
@@ -63,9 +64,10 @@ interface StorageDomainLike {
 }
 
 export interface DshDeleteHooks {
-  removePath?: (target: string) => Promise<{ ok: boolean; error?: string }>;
+  removePath?: (target: string) => Promise<{ ok: boolean; error?: string; retryable?: boolean }>;
   existsDir?: (path: string) => boolean;
   wait?: (ms: number) => Promise<void>;
+  idleTimeoutMs?: number;
 }
 
 function dshHome(): string {
@@ -81,8 +83,11 @@ function findSessionDirsByScan(sessionId: string): string[] {
   let entries: Array<{ name: string; isDirectory(): boolean }> = [];
   try {
     entries = readdirSync(root, { withFileTypes: true });
-  } catch {
-    return [];
+  } catch (error) {
+    if (isMissingPath(error)) {
+      return [];
+    }
+    throw new DshDeleteError(`cannot scan session directory ${root}: ${getErrorMessage(error)}`, 500);
   }
 
   const found: string[] = [];
@@ -93,11 +98,11 @@ function findSessionDirsByScan(sessionId: string): string[] {
     for (const variant of sessionIdVariants(sessionId)) {
       const candidate = join(root, entry.name, variant);
       try {
-        if (existsSync(candidate) && !found.includes(candidate)) {
+        if (pathExists(candidate) && !found.includes(candidate)) {
           found.push(candidate);
         }
-      } catch {
-        // keep scanning
+      } catch (error) {
+        throw new DshDeleteError(`cannot scan session directory ${candidate}: ${getErrorMessage(error)}`, 500);
       }
     }
   }
@@ -111,7 +116,7 @@ export async function locateSessionDirs(
   return findSessionDirsByScan(sessionId);
 }
 
-async function stopAgentIfRunning(ctx: DshHostContext, sessionId: string): Promise<boolean> {
+async function stopAgentIfRunning(ctx: DshHostContext, sessionId: string, timeoutMs: number): Promise<boolean> {
   const agents = optionalService<AgentsServiceLike>(ctx, "agents");
   if (!agents || typeof agents.get !== "function") {
     return false;
@@ -126,8 +131,8 @@ async function stopAgentIfRunning(ctx: DshHostContext, sessionId: string): Promi
     stopped = true;
     try {
       agent.cancel?.({ kind: "user" });
-    } catch {
-      // Agent may already be settling.
+    } catch (error) {
+      throw new DshDeleteError(`could not stop session ${sessionId}: ${getErrorMessage(error)}`, 500);
     }
     if (typeof agent.whenIdle === "function") {
       // This cap has to stay ref'd. Clearing it when idle settles keeps a
@@ -137,12 +142,12 @@ async function stopAgentIfRunning(ctx: DshHostContext, sessionId: string): Promi
       try {
         await Promise.race([
           agent.whenIdle(),
-          new Promise<void>((resolve) => {
-            idleTimer = setTimeout(resolve, 15_000);
+          new Promise<never>((_resolve, reject) => {
+            idleTimer = setTimeout(() => reject(new Error("agent did not become idle")), timeoutMs);
           }),
         ]);
-      } catch {
-        // Proceed with deletion.
+      } catch (error) {
+        throw new DshDeleteError(`could not stop session ${sessionId}: ${getErrorMessage(error)}`, 500);
       } finally {
         if (idleTimer) {
           clearTimeout(idleTimer);
@@ -168,8 +173,8 @@ async function flushSessionIfLive(ctx: DshHostContext, sessionId: string): Promi
     try {
       await sessions.flush(session);
       flushed = true;
-    } catch {
-      // Deletion still proceeds.
+    } catch (error) {
+      throw new DshDeleteError(`could not flush session ${sessionId}: ${getErrorMessage(error)}`, 500);
     }
   }
   return flushed;
@@ -210,7 +215,7 @@ async function trashTargets(
   hooks: DshDeleteHooks,
 ): Promise<{ removed: boolean; error?: string }> {
   const sendToTrash = hooks.removePath ?? removeSessionArtifact;
-  const exists = hooks.existsDir ?? existsSync;
+  const exists = hooks.existsDir ?? pathExists;
   let removed = false;
   const errors: string[] = [];
 
@@ -219,6 +224,9 @@ async function trashTargets(
       continue;
     }
     const result = await sendToTrash(target);
+    if (!result.ok && result.retryable === false) {
+      throw new DshDeleteError(result.error ?? `removal could not safely be retried: ${target}`, 500);
+    }
     if (result.ok && !exists(target)) {
       removed = true;
       continue;
@@ -237,7 +245,6 @@ async function trashTargets(
 async function stripStorageDomains(
   ctx: DshHostContext,
   sessionId: string,
-  options: { workspace: boolean },
 ): Promise<{ projRemoved: boolean; workspaceRemoved: boolean }> {
   const storage = optionalService<StorageDomainLike>(ctx, "storageDomain");
   if (!storage) {
@@ -261,10 +268,6 @@ async function stripStorageDomains(
     } catch {
       // Unit closed or table absent.
     }
-  }
-
-  if (!options.workspace) {
-    return { projRemoved, workspaceRemoved };
   }
 
   const workspace = storage.get("workspace");
@@ -331,14 +334,29 @@ export async function deleteDshSession(
   sessionId: string,
   hooks: DshDeleteHooks = {},
 ): Promise<DshDeleteResult> {
+  try {
+    return await deleteSession(ctx, sessionId, hooks);
+  } catch (error) {
+    if (error instanceof DshDeleteError) throw error;
+    throw new DshDeleteError(`session cleanup failed: ${getErrorMessage(error)}`, 500);
+  }
+}
+
+async function deleteSession(
+  ctx: DshHostContext,
+  sessionId: string,
+  hooks: DshDeleteHooks,
+): Promise<DshDeleteResult> {
   const trimmed = sessionId.trim();
   if (!isSessionId(trimmed)) {
     throw new DshDeleteError(`invalid session id: ${sessionId}`, 400);
   }
 
-  const stopped = await stopAgentIfRunning(ctx, trimmed);
+  // Refuse unreadable storage before touching the live session. A failed
+  // removal must leave its attachment and all accounting available for retry.
+  await locateSessionDirs(ctx, trimmed);
+  const stopped = await stopAgentIfRunning(ctx, trimmed, hooks.idleTimeoutMs ?? 15_000);
   const flushed = await flushSessionIfLive(ctx, trimmed);
-  const detached = detachLiveSession(ctx, trimmed);
 
   // Ref'd on purpose. wait(0) is a yield between trash attempts; unref() lets
   // Node exit while deleteDshSession is still running when nothing else is
@@ -346,12 +364,10 @@ export async function deleteDshSession(
   const wait = hooks.wait ?? ((ms: number) => new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   }));
-  const exists = hooks.existsDir ?? existsSync;
+  const exists = hooks.existsDir ?? pathExists;
 
   let firstDirs = await locateSessionDirs(ctx, trimmed);
   const firstTrash = await trashTargets(firstDirs, hooks);
-
-  const projOnly = await stripStorageDomains(ctx, trimmed, { workspace: false });
 
   firstDirs = await locateSessionDirs(ctx, trimmed);
   const secondTrash = await trashTargets(firstDirs, hooks);
@@ -368,9 +384,12 @@ export async function deleteDshSession(
     );
   }
 
-  const workspaceStorage = await stripStorageDomains(ctx, trimmed, { workspace: true });
+  // Commit the live detach only after removal is verified. In particular,
+  // /nix quit must not return to a detached foreground on a Trash failure.
+  const detached = detachLiveSession(ctx, trimmed);
+  const workspaceStorage = await stripStorageDomains(ctx, trimmed);
   const dirRemoved = firstTrash.removed || secondTrash.removed || thirdTrash.removed;
-  const projRemoved = projOnly.projRemoved || workspaceStorage.projRemoved;
+  const projRemoved = workspaceStorage.projRemoved;
   const workspaceRemoved = workspaceStorage.workspaceRemoved;
 
   if (!dirRemoved && !projRemoved && !workspaceRemoved && !detached) {

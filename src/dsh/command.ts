@@ -65,8 +65,8 @@ async function confirmDelete(
   invocation: DshCommandInvocation,
   sessions: readonly DshListedSession[],
 ): Promise<boolean> {
-  if (!questions) {
-    return true;
+  if (!questions || invocation.signal?.aborted) {
+    return false;
   }
 
   const running = sessions.filter((session) => session.running).length;
@@ -96,7 +96,8 @@ async function confirmDelete(
     agent: invocation.agent,
     signal: invocation.signal,
   });
-  return answer.answers.some((item) => item.id === "confirm" && item.selected.includes("Delete"));
+  return !invocation.signal?.aborted
+    && answer.answers.some((item) => item.id === "confirm" && item.selected.includes("Delete"));
 }
 
 async function pickSessions(
@@ -104,8 +105,9 @@ async function pickSessions(
   invocation: DshCommandInvocation,
   sessions: readonly DshListedSession[],
 ): Promise<DshListedSession[] | "cancelled"> {
+  const labels = sessions.map((session, index) => buildDshSessionLabel(session, index));
   const options = sessions.map((session, index) => ({
-    label: buildDshSessionLabel(session, index),
+    label: labels[index]!,
     description: session.id,
   }));
 
@@ -130,7 +132,7 @@ async function pickSessions(
     return "cancelled";
   }
 
-  return sessions.filter((session, index) => selected.has(buildDshSessionLabel(session, index)));
+  return sessions.filter((_session, index) => selected.has(labels[index]!));
 }
 
 function formatDeleteOutcome(
@@ -202,7 +204,7 @@ export async function handleDshSessionCleanupCommand(
         [
           `Found ${listed.length} session(s) for scope '${parsed.scope}'.`,
           "This host has no user-questions service, so nothing was deleted.",
-          `Delete explicitly with: /${SESSION_CLEANUP_COMMAND} delete <session-id> [session-id...]`,
+          `When confirmation is available, delete with: /${SESSION_CLEANUP_COMMAND} delete <session-id> [session-id...]`,
           "",
           preview,
         ].join("\n"),
@@ -213,6 +215,9 @@ export async function handleDshSessionCleanupCommand(
       return result("error", "No sessions selected.");
     }
 
+    if (!questions) {
+      return result("error", "Confirmation is unavailable; nothing was deleted.");
+    }
     const confirmed = await confirmDelete(questions, invocation, selected);
     if (!confirmed) {
       return result("success", "Delete cancelled.");

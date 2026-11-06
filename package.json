@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-cleanup",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "DeepSeek Harness session cleanup plugin requiring ccch1mneyyy/dsh-TUI (DSH backend): /nix starts fresh; /nix quit deletes and exits.",
   "type": "module",
   "main": "./lib/dsh-entry.js",

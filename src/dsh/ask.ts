@@ -31,8 +31,8 @@ export async function confirmAction(
   detail: string,
   confirmLabel = "Confirm",
 ): Promise<boolean> {
-  if (!questions) {
-    return true;
+  if (!questions || invocation.signal?.aborted) {
+    return false;
   }
 
   const answer = await questions.ask({
@@ -47,7 +47,8 @@ export async function confirmAction(
     agent: invocation.agent,
     signal: invocation.signal,
   });
-  return answer.answers.some((item) => item.id === "confirm" && item.selected.includes(confirmLabel));
+  return !invocation.signal?.aborted
+    && answer.answers.some((item) => item.id === "confirm" && item.selected.includes(confirmLabel));
 }
 
 export async function pickOne(

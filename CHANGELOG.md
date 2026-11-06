@@ -1,20 +1,28 @@
 # Changelog
 
-Current DSH release is **0.2.2**
-([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2) ·
-[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.2.2)).
+Current DSH release is **0.3.0**
+([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.0) ·
+[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.3.0)).
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
-## [Unreleased]
+## [0.3.0] - 2026-11-06
 
 ### Compatibility verification
+Historical live results below predate the safety changes in this release. Version `0.3.0` passed 71 TypeScript and 40 Python regression tests on Node `22.23.4` and `26.13.0`, plus real cached upstream SessionStore and TUI lifecycle checks. The complete live PTY suite for TUI `v0.19.0` was not rerun for `0.3.0`; no new hosted/live compatibility pass is claimed.
+
 - Verified on Linux with published dsh-TUI `v0.19.0` (`224f847d02c2157f43862d2792cf9d7459222f4c`) and the Harness line that commit names, `0.2.2-rc.1` (`66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`). `UPSTREAM_VALIDATED_VERSION` is `0.2.2-rc.1`. Live `/nix` and `/nix quit` checks passed. No newer Harness GitHub release was published. `dsh-v0.2.2-alpha.2` and `dsh-v0.2.2-alpha.3` are outside that TUI's supported set and were not tested. macOS Trash was not tested for this pair. This cell is not the final-merge CI pin. See [TESTING.md](TESTING.md).
 - Pin the new DSH `0.2.2-rc.1` CI cell to final TUI PR #1886 merge `e7336a62`, retaining the old supported pair and historical candidate pin.
 - Check foreign scene-owner refusal across reload; run the final adapter's projection and model lifecycle regressions before real PTY checks. Use the tsx ESM loader for native/host build sources without its CLI IPC socket.
-- Record hosted Linux 32/32 real PTY passes for both old and final-merge pairs, final adapter lifecycle 113 checks and model-selection 21 scenarios, and still-queued macOS jobs. Preserve full reports/deletion traces and distinguish the separate TUI `v0.19.0` release. No plugin runtime change, version bump, tag, or npm publication.
+- Record hosted Linux 32/32 real PTY passes for both old and final-merge pairs, final adapter lifecycle 113 checks and model-selection 21 scenarios, and still-queued macOS jobs. Preserve full reports/deletion traces and distinguish the separate TUI `v0.19.0` release. Those historical compatibility checks changed no plugin runtime and performed no release; this release separately includes the safety fixes below.
 
 ### Fixed
+- Preserve live session attachments, projection cache, pins and workspace references when session-file removal fails. Treat scan/access errors as failures, and refuse deletion after stop/idle/flush failures.
+- Bound Trash provider termination with TERM/KILL escalation; do not race a fallback when termination is unconfirmed. Verify actual removal even after a provider exits zero.
+- Apply the nix deadline to the full switch operation; handle abort, scene unmount and plugin disposal, isolate jobs by activation, and ignore late success for deletion. Serialize destructive nix commands while a switch is settling.
+- Require explicit confirmation even when the questions service is absent; keep picker label identities stable while the user answers.
+- Exit forked PTY children with status 127 on setup/exec failure without unwinding the parent's copied Python stack.
+- Publish the startup-order and safety fixes together as `0.3.0`; update the installation instructions to select that version rather than the unfixed `0.2.2` artifact.
 - Declare `tuiScenes` as a required Cordis service alongside `commands`. Startup now waits for the TUI and registers/opens the `/nix` switch scene from the same activation, rather than registering it in a delayed child activation that the command cannot own.
 - Report a refused scene as missing **or owned by another activation**, rather than always claiming it was unregistered.
 - Canonicalize live-test sandbox paths so macOS `/tmp` aliases cannot hide real deletion from the observer.
@@ -137,6 +145,7 @@ These entries shipped on the original Pi package before the DSH port. They are k
 - Upgraded custom picker UI with bordered modal layout, title/status/help lines, and responsive overlay sizing
 - Added production-ready package metadata and README
 
+[0.3.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.0
 [0.2.2]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2
 [0.2.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1
 [0.2.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.0

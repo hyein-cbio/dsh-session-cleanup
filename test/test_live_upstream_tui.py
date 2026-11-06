@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -413,6 +414,40 @@ class DriverTests(unittest.TestCase):
         self.assertFalse(driver.deletion_order_ok(events, [], "adopted"))
         self.assertFalse(driver.deletion_order_ok(events, [target], "other-id"))
         self.assertFalse(driver.deletion_order_ok(events, [target, target.parent / "missing"], "adopted"))
+
+
+class ChildFailureTests(unittest.TestCase):
+    def test_child_setup_and_exec_failures_exit_127_without_running_atexit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            for mode in ("setup", "exec"):
+                with self.subTest(mode=mode):
+                    marker = Path(temp) / f"{mode}-atexit"
+                    script = f'''
+import atexit, importlib.util, json, os
+os.environ.update({{"DSH_COMPAT_PAIR": "validated", "DSH_COMPAT_BIN": "/unused/bin.js",
+                    "DSH_COMPAT_HOME": {temp!r}, "DSH_COMPAT_CWD": {temp!r}}})
+spec = importlib.util.spec_from_file_location("driver", {str(ROOT / "scripts/live-upstream-tui.py")!r})
+driver = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(driver)
+def on_exit():
+    with open({str(marker)!r}, "a") as out:
+        out.write(str(os.getpid()) + "\\n")
+atexit.register(on_exit)
+driver.CLI = "/nonexistent-dsh-review-node"
+if {mode!r} == "setup":
+    driver.CWD = "/nonexistent-dsh-review-cwd"
+tui = driver.Tui([])
+try:
+    code = tui.wait_exit(5)
+    print(json.dumps({{"code": code, "parent": os.getpid(), "child": tui.pid}}))
+finally:
+    tui.close()
+'''
+                    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    data = json.loads(result.stdout)
+                    self.assertEqual(data["code"], 127)
+                    self.assertEqual(marker.read_text().splitlines(), [str(data["parent"])])
 
 
 if __name__ == "__main__":

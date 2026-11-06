@@ -9,12 +9,14 @@ import {
   type DshCommandInvocation,
 } from "./invocation.js";
 import { dshNixUsage, parseDshNixArgs } from "./nix-parse.js";
-import { switchToNewSession, type TuiSwitchResult } from "./tui-switch.js";
+import { hasPendingNixSwitch, switchToNewSession, type TuiSwitchResult } from "./tui-switch.js";
+
+const activeCommands = new WeakSet<DshHostContext>();
 
 export interface DshNixHooks {
   exitProcess?: (code: number) => void;
   disposeRoot?: () => Promise<void>;
-  switchToNewSession?: (ctx: DshHostContext) => Promise<TuiSwitchResult>;
+  switchToNewSession?: (ctx: DshHostContext, options?: { signal?: AbortSignal }) => Promise<TuiSwitchResult>;
 }
 
 interface FiberHost {
@@ -93,10 +95,16 @@ export async function handleDshNixCommand(
     return commandResult("error", `${parsed.error}\n${dshNixUsage()}`);
   }
 
-  const oldId = currentSessionId(invocation);
-  const questions = userQuestionsOf(ctx);
-
+  if (activeCommands.has(ctx) || hasPendingNixSwitch(ctx)) {
+    return commandResult("error", "A previous nix operation is still settling; nothing was deleted.");
+  }
+  activeCommands.add(ctx);
   try {
+    const oldId = currentSessionId(invocation);
+    const questions = userQuestionsOf(ctx);
+    if (!questions) {
+      return commandResult("error", "Confirmation is unavailable; nothing was deleted.");
+    }
     if (parsed.kind === "quit") {
       const confirmed = await confirmAction(
         questions,
@@ -112,7 +120,7 @@ export async function handleDshNixCommand(
       }
       const deleteError = await deleteCurrentSession(ctx, oldId);
       if (deleteError) {
-        return commandResult("error", `Deleted nothing.\n${deleteError}`);
+        return commandResult("error", `Session cleanup did not complete; DSH was not exited. Some files may already have been removed.\n${deleteError}`);
       }
       const summary = oldId ? `Deleted ${oldId}. Exiting.` : "No current session to delete. Exiting.";
       await quitHost(ctx, hooks);
@@ -135,11 +143,14 @@ export async function handleDshNixCommand(
     }
 
     const startFresh = hooks.switchToNewSession ?? switchToNewSession;
-    const switched = await startFresh(ctx);
+    const switched = await startFresh(ctx, { signal: invocation.signal });
     if (!switched.ok) {
       return commandResult("error", switched.error ?? "Could not start a new session.");
     }
 
+    if (invocation.signal?.aborted) {
+      return commandResult("error", "Session cleanup cancelled after the switch; the previous session was not deleted.");
+    }
     const previousId = switched.previousSessionId || oldId;
     const deleteError = await deleteCurrentSession(ctx, previousId);
     if (deleteError) {
@@ -161,5 +172,7 @@ export async function handleDshNixCommand(
     return commandResult("success", summary);
   } catch (error) {
     return commandResult("error", error instanceof Error ? error.message : String(error));
+  } finally {
+    activeCommands.delete(ctx);
   }
 }
