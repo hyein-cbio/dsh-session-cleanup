@@ -41,7 +41,6 @@ jobs:
 
   live:
     name: Live upstream PTY (${{ matrix.os }}, ${{ matrix.cell.pair }})
-    needs: check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -93,6 +92,13 @@ jobs:
         with:
           version: '11.28.5'
           run_install: false
+      # Gate each live cell locally so another OS's runner queue cannot block it.
+      - name: Check package before upstream integration
+        run: |
+          npm ci
+          npm run check
+          npm pack --dry-run
+          git diff --exit-code && git diff --check
       - name: Build sources and install an isolated profile
         run: python3 scripts/prepare-upstream-ci.py
       - name: Check final adapter projection and model lifecycle
