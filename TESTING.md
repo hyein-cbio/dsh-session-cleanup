@@ -50,6 +50,20 @@ Local package checks passed 48 TypeScript and 38 Python tests before the final C
 
 Every runtime profile uses a new disposable HOME with local source-built tarballs and scrubbed credentials. The PTY suite covers cancellation, adoption before removal, projection/pin/archive cleanup, preservation of an unrelated session, post-switch command use, `/nix quit`, and restart without resurrection. Foreign-owner refusal is a real Cordis/TUI lifecycle check; refusal-preserves-files also has unit coverage. The PTY suite does not deliberately remove the scene or run authenticated/model-backed activity. Linux deletion and macOS Trash are distinct assertions.
 
+### Latest CI status after the pipeline failure fix
+
+[Run 42243600083](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42243600083) tests head `a225aba0f2b7cc6cdb2330ff4b0a4e3d90947245`. The final adapter step now declares `shell: bash`, so a failed Node process cannot be hidden by a successful `tee`. The observed job results are separate from the older successful Linux jobs below.
+
+| Cell and platform | Job result | Observed evidence |
+| --- | --- | --- |
+| `validated`, Ubuntu x86_64, Node `22.23.4` | [**Failed**](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42243600083/job/127979961119) | `live-full.json`: **18 passed / 1 failed**; stopped at `control-stable-before-resume`: `control log changed while stopped` |
+| `merged-022`, Ubuntu x86_64, Node `24.22.1` | [**Success**](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42243600083/job/127979961073) | `LIVE_OK`; **32 passed / 0 failed / 0 skipped**; upstream projection lifecycle **113 checks** and durable model selection **21 scenarios** passed with pipeline failure propagation enabled |
+| Both cells, macOS | **Queued; no new verdict** | No completed macOS job for this run at the time of review |
+
+Both Linux package jobs passed. Both live jobs also passed their early/late scene ownership, foreign-owner refusal, removal/reload, and disposal checks before the PTY suite. The old-line PTY failure occurs before resume and confirmed switch/deletion; its later switch, quit, and restart checks did not run. The failed report's `skipped: 0` is the driver's default counter, not evidence that those later checks executed. The cause of the changed control-log digest is unresolved; this docs update does not diagnose it as a harness race or a product regression and does not alter or retry the check.
+
+This run is **not a full CI success**, and the PR must not merge on these results. Retain the historical macOS-15 ARM64 and Ubuntu verification of Harness `0.2.1-rc.5` plus released TUI `v0.18.0` in [run 41524817863](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/41524817863); the failed current attempt is recorded separately. The final TUI merge has a new Linux pass only. Require CI success, then update this record and README to the successful evidence before merging. No branch deletion, force-push, or new PR is part of this update.
+
 ### Hosted Linux verification
 
 [Run 42238899327](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42238899327) directly tested branch head `cdb2ce98bdf4c809cf5fc57257a766a4ff3e8002` against the unchanged plugin runtime from `main@31966db`. Both Linux live jobs succeeded, with `LIVE_OK`, all 32 assertions true, and zero failed/skipped assertions. The complete reports and deletion traces were parsed from their job logs and are preserved in [`test/evidence/2026-11-06-final-tui-merge.json`](test/evidence/2026-11-06-final-tui-merge.json).
