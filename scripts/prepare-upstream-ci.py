@@ -101,11 +101,15 @@ def main() -> None:
                             f"file:{tui_pack}", f"file:{plugin_pack}"], profile, env, log)
     # The driver itself boots/exits the fresh host before accessing workspace storage.
     (log / "prepared.json").write_text(json.dumps({**values, "harness": str(harness), "tui": str(tui)}, indent=2) + "\n")
-    with Path(os.environ["GITHUB_ENV"]).open("a") as output:
-        for key, value in values.items():
-            if "\n" in value or "\r" in value:
-                raise SystemExit("environment paths must not contain newlines")
-            output.write(f"{key}={value}\n")
+    # prepared.json is the provider-neutral handoff. Preserve optional legacy
+    # env-file export for local callers without requiring a GitHub runner.
+    env_file = os.environ.get("DSH_COMPAT_ENV_FILE") or os.environ.get("GITHUB_ENV")
+    if env_file:
+        with Path(env_file).open("a") as output:
+            for key, value in values.items():
+                if "\n" in value or "\r" in value:
+                    raise SystemExit("environment paths must not contain newlines")
+                output.write(f"{key}={value}\n")
     print("Source-built profile ready", flush=True)
 
 

@@ -91,7 +91,7 @@ npm run test     # test suite
 npm run check    # build + TypeScript/Python tests
 ```
 
-[GitHub Actions CI](.github/workflows/ci.yml) runs package checks and source-built live PTY checks on Ubuntu and macOS for pull requests, pushes to `main`, and manual runs. Live jobs upload build logs and verification evidence even on failure; package checks alone do not establish upstream compatibility.
+CI follows [pi-codemode-bench](https://github.com/hyein-cbio/pi-codemode-bench): [GitHub Actions](.github/workflows/ci.yml) dispatches Ubuntu checks to credential-free Modal Sandboxes; [CircleCI](.circleci/config.yml) runs macOS checks on managed Apple silicon VMs. No self-hosted runner is needed. One Modal app owns all four Ubuntu Sandbox cells per CI run (at most two concurrently), rather than creating an app for each cell. Both providers retain Node 22/24 package checks and the two pinned source-built upstream PTY cells, with failure evidence. See [CI setup and security](docs/CI.md) for secrets, event policy, CircleCI pipeline configuration and local validation. Package checks or valid YAML alone do not establish cloud compatibility.
 
 Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.5` with released dsh-TUI `v0.18.0` has hosted Linux/macOS verification.
 

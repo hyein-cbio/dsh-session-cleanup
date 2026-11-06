@@ -92,6 +92,21 @@ class PrepareTests(unittest.TestCase):
         self.assertIn(f"DSH_COMPAT_CWD={cwd}\n", self.github_env.read_text())
         self.assertTrue((self.log / "prepared.json").is_file())
 
+    def test_bootstrap_uses_json_handoff_without_github_environment(self):
+        with patch.dict(os.environ):
+            os.environ.pop("GITHUB_ENV", None)
+            os.environ.pop("DSH_COMPAT_ENV_FILE", None)
+            prepare.main()
+        self.assertTrue((self.log / "prepared.json").is_file())
+        self.assertFalse(self.github_env.exists())
+
+    def test_explicit_provider_neutral_env_file_takes_precedence(self):
+        env_file = self.root / "provider-env"
+        with patch.dict(os.environ, {"DSH_COMPAT_ENV_FILE": str(env_file)}):
+            prepare.main()
+        self.assertIn("DSH_COMPAT_CWD=", env_file.read_text())
+        self.assertFalse(self.github_env.exists())
+
     def test_plugin_tarball_filename_comes_from_npm_pack_json(self):
         self.plugin_filename = "renamed-plugin-0.3.0-beta.1.tgz"
         prepare.main()

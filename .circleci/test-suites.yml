@@ -1,0 +1,10 @@
+name: node tests
+discover: find .test-dist/test -maxdepth 1 -type f -name '*.test.js' | sort
+run: >-
+  mkdir -p test-reports && node --test --test-concurrency=1
+  --test-reporter=spec --test-reporter-destination=stdout
+  --test-reporter=./ci/junit-reporter.mjs
+  --test-reporter-destination="<< outputs.junit >>"
+  << test.atoms >>
+outputs:
+  junit: test-reports/node.xml

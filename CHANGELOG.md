@@ -6,6 +6,15 @@ Current DSH release is **0.3.1**
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
+## Unreleased
+
+### CI
+- Consolidate Ubuntu dispatch into one Modal app per run, with four isolated Sandbox cells and bounded internal parallelism. Keep per-cell failure evidence, finish remaining cells after a failure, and fail the aggregate result when any cell fails.
+- Adopt the pi-codemode-bench topology: GitHub Actions only dispatches Ubuntu jobs to Modal; CircleCI executes macOS checks on Xcode 26.4.1 / m4pro.medium cloud VMs. Remove all self-hosted runner routing.
+- Retain Node 22/24 package gates, exact upstream pairs, native builds, model/ownership lifecycle tests and real PTY coverage through a provider-neutral worker. Preserve bounded failure reports from Modal and CircleCI.
+- Keep Modal credentials on the dispatcher, upload committed source only, and terminate remote Sandboxes on success and failure. Add offline regression tests for source/evidence isolation, failure propagation and event policy.
+- Use CircleCI Smarter Testing with a compiled TypeScript test-file suite and an allowlisted JUnit reporter; no paid impact analysis, dynamic splitting or automatic reruns. No plugin runtime/version/publication change is part of this migration.
+
 ## [0.3.1] - 2026-11-06
 
 ### CI

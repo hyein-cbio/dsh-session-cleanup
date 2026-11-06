@@ -87,6 +87,9 @@ class Tui:
                     "COLUMNS": str(COLS),
                     "LINES": str(ROWS),
                     "DSH_TUI_NO_LAUNCHPAD": "1",
+                    # The driver asserts English UI text. Minimal cloud images
+                    # may have no locale, which otherwise selects Chinese.
+                    "DSH_TUI_LANG": "en",
                     "NO_COLOR": "1",
                     # Headless macOS may need the real filesystem Trash fallback.
                     "DSH_SESSION_TRASH_DIR": str(Path(HOME) / ".Trash"),

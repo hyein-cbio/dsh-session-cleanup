@@ -6,7 +6,7 @@ The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x8
 
 ## Version 0.3.1 release verification (2026-11-06)
 
-[CI run 42270528944](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42270528944), runtime commit `4c1ccd873e3672490078b57f016f8e8fc06a2999`, package version `0.3.1`, completed successfully with **all eight jobs passing** on the first attempt. Release preparation updates documentation only; no runtime, dependency, test-driver or workflow changes follow that verified commit.
+[CI run 42270528944](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42270528944), runtime commit `4c1ccd873e3672490078b57f016f8e8fc06a2999`, package version `0.3.1`, completed successfully with **all eight jobs passing** on the first attempt. Release preparation updated documentation only; the later cloud CI migration is recorded separately below and does not retroactively extend this release's verification.
 
 | CI check | Result |
 | --- | --- |
@@ -17,15 +17,15 @@ The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x8
 
 The four uploaded `upstream-compat-<pair>-<os>-1` artifacts contain `live-full.json` and real deletion traces. These verify adoption before deletion, macOS Trash, projection/workspace/pin cleanup, preservation of the control session, `/nix quit`, and restart without recreating deleted ids. Both upstream pair identities remain pinned in `scripts/upstream_pairs.py`; the published TUI `v0.19.0` opt-in cell was not rerun. The initial closed-writer regression and the self-hosted setup failures below are historical failures, not the final release result.
 
-## CI runner routing and fork policy
+## Current cloud CI: Modal Ubuntu and CircleCI macOS
 
-Both CI jobs route matrix `macOS` to `[self-hosted, macOS]`, and `ubuntu-24.04` to the GitHub-hosted Ubuntu runner. Job-level guards allow only this repository's push/manual events and PRs whose head repository is this repository. Fork PRs and copies of this workflow in other repositories skip both jobs before runner allocation.
+The working configuration follows `hyein-cbio/pi-codemode-bench`. GitHub Actions remains enabled as a lightweight authenticated Modal dispatcher; it does not run Node tests or upstream builds. Ubuntu 24.04 checks run in credential-free Modal Sandboxes: one shared ephemeral app per invocation, four isolated cells and a default concurrency of two. A single GitHub job reports the aggregate outcome and retains each cell's reports. CircleCI uses managed Apple silicon macOS VMs (Xcode 26.4.1, m4pro.medium). No self-hosted runner is selected. See [docs/CI.md](docs/CI.md) for the full matrix, pinned SDK/runtime settings, provider setup, event/fork policies, evidence collection and limits.
 
-pnpm itself is installed under `$RUNNER_TEMP/setup-pnpm`, avoiding stale `~/setup-pnpm/node_modules` across matrix cells (`ENOTEMPTY` on persistent runners). npm cache is isolated under `$RUNNER_TEMP/npm-cache` for every job. Remote npm cache restore/save is enabled only on GitHub-hosted runners; self-hosted jobs use the local job cache instead of downloading a multi-gigabyte archive of the runner owner's personal `~/.npm`. Existing personal caches are not deleted.
+Both providers retain two Node package checks and the `validated` / `merged-022` real upstream PTY checks. `ci/run_ci.py` shares the package/build/lifecycle/PTY gates; `prepared.json` replaces required GitHub environment-file coupling. CircleCI package cells use the reference project's Smarter Testing pattern with a JUnit reporter adapted to compiled TypeScript files.
 
-Python setup differs by runner environment: GitHub-hosted runners use `actions/setup-python` with Python 3.12; self-hosted macOS uses its pre-provisioned `python3` on PATH. Both jobs reject Python older than 3.10 and log the interpreter path/version before tests (and before upstream selection in live jobs). No sudo, system Python installation or `/Users/runner` permission changes are performed. Live jobs leave `runner.txt` evidence even if tool setup fails. Run [42266412844](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42266412844) passed all four Ubuntu jobs but failed the four macOS jobs before testing because the old unconditional setup-python step tried to create `/Users/runner/hostedtoolcache`.
+New offline tests verify committed-source-only upload, credential isolation, cell validation, failure propagation, cleanup, bounded evidence paths, shared-app lifecycle and event policy. Direct Modal validation of temporary snapshot `8a6ffce5` passed all four Ubuntu cells in app `ap-30sJ42gzIcN8Jmrt5Q208k`, with four distinct Sandboxes at default parallelism 2. Each cell ran as UID 10001 and passed 76 TypeScript and 66 Python tests without skips; each live cell passed 32/32 PTY assertions. The locale is pinned to English; non-root execution keeps permission-denial tests active. [docs/CI.md](docs/CI.md#single-app-validation-2026-11-06) records the app, Sandbox identities and earlier failed environment probes. CircleCI config compilation and the exact package worker passed locally on both Node versions, not on hosted macOS. These pre-push results do not verify GitHub-triggered Modal authentication or hosted CircleCI macOS; assess those separately from the actual commit's provider runs after pushing. Existing 0.3.1 results above remain historical evidence from the prior infrastructure.
 
-These YAML guards are not a security boundary against a PR that edits its own workflow. Before relying on a self-hosted runner in this public repository, set **Settings → Actions → General → Fork pull request workflows from outside collaborators → Require approval for all outside collaborators** (`all_external_contributors`). Review workflow changes and code before approving; approval can authorize malicious code even if the normal fork guard would have skipped it. Read-only tokens do not isolate the runner's files, credentials or network. Dedicated/isolated runners are still recommended. The workflow change does not itself update GitHub repository settings.
+Historical setup failure: [run 42266412844](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42266412844) passed Ubuntu but failed macOS before testing because setup-python attempted `/Users/runner/hostedtoolcache`. Subsequent self-hosted fixes and run 42270528944 passed before this cloud migration; neither that permission workaround nor the local runner is a prerequisite of the new configuration.
 
 ## Closed-writer regression reproduction (before 0.3.1 release)
 
@@ -115,7 +115,9 @@ A fresh profile passed 32 assertions, 0 failed, 0 skipped, including workspace i
 
 On this tree, Node `v24.22.1`: `npm ci` exit 0, `npm run check` exit 0 (48 TypeScript tests passed, 0 failed, 0 skipped; 39 Python tests OK), `npm pack --dry-run` exit 0 for `dsh-session-cleanup@0.2.2`. Unit tests do not replace the live checks above.
 
-## GitHub Actions CI
+## Historical GitHub Actions CI (through version 0.3.1)
+
+This section preserves the old workflow design and development history. The current Modal/CircleCI configuration is documented above and in [docs/CI.md](docs/CI.md). Historical statements below are not instructions for the new providers.
 
 `.github/workflows/ci.yml` runs on pushes to `main`, pull requests, and manual dispatch. It does not use Pullfrog, model-provider credentials, or a paid review service. Its token has read-only repository access, and checkout credentials are not persisted.
 

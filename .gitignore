@@ -7,3 +7,5 @@ coverage/
 config.json
 *.tmp
 __pycache__/
+ci-results/
+test-reports/

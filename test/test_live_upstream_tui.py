@@ -433,6 +433,34 @@ class DriverTests(unittest.TestCase):
 
 
 class ChildFailureTests(unittest.TestCase):
+    def test_child_pins_english_ui_even_without_a_locale(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            evidence = home / "child-env.json"
+            executable = home / "inspect-env.py"
+            executable.write_text(
+                "import json, os\nfrom pathlib import Path\n"
+                f"Path({str(evidence)!r}).write_text(json.dumps({{'language': os.environ['DSH_TUI_LANG'], 'home': os.environ['HOME']}}))\n")
+            script = f'''
+import importlib.util, os, sys
+os.environ.update({{"DSH_COMPAT_PAIR": "validated", "DSH_COMPAT_BIN": {str(executable)!r},
+                    "DSH_COMPAT_HOME": {temp!r}, "DSH_COMPAT_CWD": {temp!r}, "DSH_TUI_LANG": "zh"}})
+for key in ("LANG", "LC_ALL", "LC_MESSAGES"):
+    os.environ.pop(key, None)
+spec = importlib.util.spec_from_file_location("driver", {str(ROOT / "scripts/live-upstream-tui.py")!r})
+driver = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(driver)
+driver.CLI = sys.executable
+tui = driver.Tui([])
+try:
+    assert tui.wait_exit(5) == 0
+finally:
+    tui.close()
+'''
+            result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(evidence.read_text()), {"language": "en", "home": str(home.resolve())})
+
     def test_child_setup_and_exec_failures_exit_127_without_running_atexit(self):
         with tempfile.TemporaryDirectory() as temp:
             for mode in ("setup", "exec"):
