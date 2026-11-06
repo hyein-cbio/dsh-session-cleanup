@@ -11,6 +11,7 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 Patch version prepared for CI only. No tag, GitHub Release or npm publication.
 
 ### CI
+- Isolate npm cache under the job temporary directory and disable remote npm cache restore/save on self-hosted runners; never archive or restore the runner owner's personal `~/.npm`.
 - Use the pre-provisioned Python 3.10+ on self-hosted macOS instead of downloading a non-relocatable Python into `/Users/runner/hostedtoolcache`. Keep Python 3.12 setup on GitHub-hosted runners, verify the interpreter before selecting upstreams, and record runner evidence even if setup fails.
 - Route macOS matrix cells to runners labeled `self-hosted` and `macOS`; retain GitHub-hosted Ubuntu. Skip fork PRs and workflow copies outside the original repository. Require external-contributor approval in repository settings as a separate security control.
 
