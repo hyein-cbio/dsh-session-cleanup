@@ -8,20 +8,58 @@ The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x8
 
 `.github/workflows/ci.yml` runs on pushes to `main`, pull requests, and manual dispatch. It does not use Pullfrog, model-provider credentials, or a paid review service. Its token has read-only repository access, and checkout credentials are not persisted.
 
-Both jobs use an independent `ubuntu-24.04` / `macos-15` matrix with `fail-fast: false`, Node `22.23.4`, and Python `3.12`:
+Both jobs use an independent `ubuntu-24.04` / `macos-15` matrix with `fail-fast: false` and Python `3.12`. Package checks cover Node `22.23.4` and `24.22.1`. Live checks use the `validated` pair on Node `22.23.4` and the `candidate-022` pair on Node `24.22.1`. `scripts/upstream_pairs.py` supplies their exact repository/commit/version pins to checkout and driver preflight. The candidate remains a pinned, unreleased TUI PR, not a declaration that released TUI supports DSH 0.2.2:
 
 - **Package checks**: `npm ci`, `npm run check` (TypeScript tests and Python driver/bootstrap regressions), `npm pack --dry-run`, and a tracked-file/whitespace check.
-- **Live upstream PTY**: after package checks pass, check out the exact Harness and TUI commits in the compatibility record (including the TUI submodule), build the native addon and host libraries, build/pack the TUI, build/pack this plugin, and install both tarballs through the real Harness plugin manager in a new disposable HOME. `scripts/prepare-upstream-ci.py` performs this preparation, refuses an existing HOME, and exports the paths for the driver. Upstream lockfiles and compatibility gates are not bypassed. TUI installation/packing uses the hoisted linker required for its bundled dependencies.
+- **Live upstream PTY**: after package checks pass, check out the exact Harness and TUI commits selected by the named pair (including the TUI submodule), build the native addon and host libraries, build/pack the TUI, build/pack this plugin, and install both tarballs through the real Harness plugin manager in a new disposable HOME. `scripts/prepare-upstream-ci.py` performs this preparation, refuses an existing HOME, and exports the paths for the driver. Upstream lockfiles and compatibility gates are not bypassed. TUI installation/packing uses the hoisted linker required for its bundled dependencies.
 
 Tarball filenames are not version-pinned: the TUI is packed into a fresh package-specific directory and preparation requires exactly one generated `.tgz`; the plugin filename comes from `npm pack --json`. Lifecycle-script output does not affect TUI artifact discovery. Installed package identities and versions are checked against this checkout's `package.json` and the selected TUI source manifest. The upstream commit/version compatibility gates remain pinned intentionally.
 
+Before the PTY run, `scripts/check-upstream-lifecycle.mjs` uses the source-built TUI's real Cordis and `TuiSceneRuntime` to check both startup orders, owner-bound opening, service removal/reload, and plugin disposal. Only its command registry is a fixture; it is not a renderer/session-deletion test. It must fail against the old delayed-child-registration implementation. The PTY suite still separately tests the real host, command registry, renderer, and deletion.
+
 The driver initializes missing workspace storage by booting and cleanly exiting the real host. It dismisses the first-run guide and Sessions screen through Escape, without configuring credentials or making model calls. Linux process provenance uses `/proc`; macOS uses `ps` and `lsof`. Deletion evidence records actual permanent removal on Linux and real Trash provider/rename operations on macOS. The macOS check rejects permanent `rmSync` removal; headless hosts can use the plugin's filesystem Trash fallback under the disposable HOME.
 
-Each live job is bounded to 45 minutes. Build/install logs and PTY evidence are uploaded even on failure as `upstream-compat-<runner>-<attempt>` artifacts, retained for 14 days. A successful build or package-check job is **not** a live compatibility pass: require the live job to succeed, `LIVE_OK`, and `live-full.json` with no failed or skipped assertions. Failures such as a missing switch scene remain failures; the workflow does not disable the switch assertion to make CI green.
+Each live job is bounded to 45 minutes. Build/install logs and PTY evidence are uploaded even on failure as `upstream-compat-<pair>-<runner>-<attempt>` artifacts, retained for 14 days. A successful build or package-check job is **not** a live compatibility pass: require the live job to succeed, `LIVE_OK`, and `live-full.json` with no failed or skipped assertions. Failures such as a missing switch scene remain failures; the workflow does not disable the switch assertion to make CI green.
 
 Manual run after the workflow reaches the default branch: GitHub **Actions → CI → Run workflow**, or `gh workflow run ci.yml --ref main`. Inspect both OS jobs and download their artifacts. The hosted verification below records the successful run, platform details, and reviewed artifacts; future runs need the same evidence before extending that record.
 
 During workflow development, local macOS arm64 source builds and isolated tarball installation completed with Node `26.13.0`. The real PTY run passed boot, help, cancellation, native-addon provenance, resume, and the cache-existence precondition, but failed confirmed `/nix`: the TUI reported `dsh-tui has no nix switch scene registered.` This is a failing integration result, not a macOS compatibility pass. The hosted Node `22.23.4` results are recorded separately below.
+
+## Local dual-line verification (2026-11-05, unreleased fix)
+
+This checkout fixes an ownership bug, not a missing DSH session-creation feature. When `tuiScenes` arrived after plugin startup, `ctx.inject()` registered `dsh-nix-switch` under a **child** Cordis activation, but the command called `open()` under the **parent** activation. The real TUI listed the scene yet returned `false` to the parent's open call. Its ownership fence is intentional. Making both `commands` and `tuiScenes` required dependencies lets Cordis schedule and reload the entire plugin with one owner. No version sniffing, root-context borrowing, private channel access, or upstream gate bypass is used in production.
+
+The unreleased runtime files were built, packed, and installed by the real checkout CLI into disposable profiles. Every installed `lib/**/*.js` file was compared with this checkout's output and matched on both successful runs. Package version remains `0.2.2`; these changes are **not** claimed to exist in the already published 0.2.2 package. Runtime SHA-256 identities and normalized assertion reports/deletion traces are saved in [`test/evidence/2026-11-05-dual-dsh.json`](test/evidence/2026-11-05-dual-dsh.json).
+
+| Cell | Exact Harness source | Exact TUI source | Node | Local real PTY |
+| --- | --- | --- | --- | --- |
+| `validated` | `0.2.1-rc.5`, `b830ec950faba0a46dda564be3e2d854afed94f1` | released `v0.18.0`, `1d0d946f459da5149aba64cc6cc0ef7da304053c` | `22.23.4` | **33 passed / 0 failed / 0 skipped**, `LIVE_OK` |
+| `candidate-022` | `0.2.2-rc.1`, `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` | [TUI PR #1886](https://github.com/ccch1mneyyy/dsh-TUI/pull/1886), `fb0b5325be7704fbdd09a7d7d8d642fca4d42f77` | `24.22.1` | **33 passed / 0 failed / 0 skipped**, `LIVE_OK` |
+
+Both source builds kept their upstream lockfiles and native addons. The candidate TUI tarball was built during the failing baseline and reused unchanged for the successful fresh profile; only this plugin was rebuilt/repacked. The old pair was built separately on Node 22. Neither source manifest/peer range nor the installer's compatibility gate was overridden. Both TUI sources report package version `0.18.0`; their commits, not that shared version string, distinguish the released and candidate implementations. DSH `0.2.2-rc.1`'s CLI requires Node **>=24.9.0**.
+
+Platform: macOS **27.2 (26B123), ARM64**, Darwin 27.2.0, Python **3.15.2**. The initial pnpm launcher was 11.28.5; upstream `packageManager` selection actually used **11.21.0** for TUI installs. No model calls were made and no real user profile was modified. Both runs observed real `trash` provider operations during `/nix`, with the adopted ID already present **before** old-directory removal. They also passed cancellation, projection/pin/archive cleanup, unrelated control-session preservation, `/nix help` after switching, `/nix quit` exit 0, and restart without resurrection. They do not inspect Trash contents or test restoration.
+
+### Negative controls and lifecycle coverage
+
+- The unmodified runtime from `main@9837e1f` reproduced the new-pair failure locally: **23 passed / 1 failed**, `deletion summary missing`, with `dsh-tui has no nix switch scene registered.` on screen. The baseline stops there; its `skipped: 0` field does not mean later quit/restart checks executed.
+- The new lifecycle checker fails against that old runtime and passes both early/late startup scenarios against the fixed runtime on **both** TUI source builds. It also requires command/scene teardown when the TUI disappears, a single fresh registration after reload, and cleanup on plugin disposal.
+- An intermediate fixed-plugin run switched/deleted successfully but failed deletion-order evidence because `/tmp` and `/private/tmp` spellings did not match. The driver now canonicalizes HOME/CWD before spawning, with an alias regression test. The fresh-profile run above retains all ordering/Trash assertions and passes them; the intermediate evidence failure is not counted as a compatibility pass.
+- A redundant new-TUI dependency reinstall was stopped during optional cross-platform package-download retries. The successful run reused the already source-built baseline TUI tarball; it did not substitute a registry TUI or relax lockfiles.
+- `npm run check` passes on Node **22.23.4** and **24.22.1**: **48 TypeScript tests** and **38 Python tests** each. The new refusal test checks that an actual session directory/log survives missing/refused scenes. `npm pack --dry-run` and `git diff --check` pass.
+
+### Reproduction and limits
+
+Use `DSH_COMPAT_PAIR=validated` (default) or `DSH_COMPAT_PAIR=candidate-022` consistently for both preparation and the driver. `python3 scripts/upstream_pairs.py` prints the selected immutable pins; unknown names are refused. Check out that pair and the TUI submodule, select its Node line, and follow the preparation flow above with a **new, nonexistent** sandbox HOME. After preparation, use its exported `DSH_COMPAT_NODE`, `DSH_COMPAT_BIN`, and `DSH_COMPAT_CWD` paths:
+
+```bash
+node scripts/check-upstream-lifecycle.mjs
+python3 scripts/live-upstream-tui.py
+```
+
+For a baseline negative control, the lifecycle checker also accepts `DSH_COMPAT_PLUGIN_ENTRY=/absolute/path/to/baseline/lib/dsh-entry.js`; normal CI leaves that unset and checks the just-built local entry.
+
+These are **local macOS** results, not a new hosted Linux/macOS CI success. The CI matrix has been extended but was not pushed or dispatched during this work. They cover the two exact upstream commits and slash-command flows, not every DSH release before/after 0.2.2, released TUI support for the new DSH, real model activity, or other platforms. The original historical local failure below remains a failure of the old implementation/environment, not a pass retroactively.
 
 ## Hosted verification (2026-11-02)
 

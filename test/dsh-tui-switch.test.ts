@@ -68,6 +68,35 @@ test("switchToNewSession errors when dsh-tui scenes are missing", async () => {
   assert.match(result.error ?? "", /needs dsh-tui/);
 });
 
+test("scene registration uses the command context as owner and releases it", () => {
+  let identity: unknown;
+  let disposed = false;
+  const ctx = {
+    get(name: string) {
+      return name === "tuiScenes" ? {
+        register(_descriptor: unknown, owner: unknown) {
+          identity = owner;
+          return () => { disposed = true; };
+        },
+      } : undefined;
+    },
+  };
+  const dispose = registerNixSwitchScene(ctx);
+  assert.equal(identity, ctx);
+  assert.equal(disposed, false);
+  dispose();
+  assert.equal(disposed, true);
+});
+
+test("switchToNewSession explains a refused scene without starting a session", async () => {
+  const result = await switchToNewSession({
+    get: () => ({ open: () => false }),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.previousSessionId, "");
+  assert.match(result.error ?? "", /missing or owned by another activation/);
+});
+
 test("registerNixCommandTree advertises quit and help", () => {
   let provider: { children(path: readonly string[]): ReadonlyArray<{ name: string }> } | undefined;
   registerNixCommandTree({

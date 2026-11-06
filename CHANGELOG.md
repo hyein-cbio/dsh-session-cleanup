@@ -8,6 +8,16 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 
 ## [Unreleased]
 
+### Fixed
+- Declare `tuiScenes` as a required Cordis service alongside `commands`. Startup now waits for the TUI and registers/opens the `/nix` switch scene from the same activation, rather than registering it in a delayed child activation that the command cannot own.
+- Report a refused scene as missing **or owned by another activation**, rather than always claiming it was unregistered.
+- Canonicalize live-test sandbox paths so macOS `/tmp` aliases cannot hide real deletion from the observer.
+
+### Testing
+- Add real Cordis/TUI lifecycle checks for early/late TUI startup, service removal/reload, and plugin disposal; add filesystem-preservation regression coverage for refused switches.
+- Share two exact upstream source pins between preparation, live-test preflight, and CI. Package CI covers Node 22/24; live CI selects the old validated pair on Node 22 and the TUI PR #1886 candidate with DSH `0.2.2-rc.1` on Node 24, on Linux/macOS.
+- Local macOS ARM64 live checks pass **33/33** on both pairs. The new pair uses an unreleased TUI candidate, not released TUI `v0.18.0`. No new hosted CI success or blanket DSH `0.2.2` support is claimed. See [TESTING.md](TESTING.md).
+
 ## [0.2.2] - 2026-11-02
 
 ### Fixed

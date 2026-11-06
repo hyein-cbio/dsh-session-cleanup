@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { handleDshNixCommand } from "../src/dsh/nix-command.js";
@@ -119,6 +122,36 @@ test("DSH /nix reports a missing TUI switcher", async () => {
   );
   assert.equal(outcome.kind, "error");
   assert.match(outcome.text ?? "", /needs dsh-tui/);
+});
+
+test("actual missing/refused scenes preserve the session directory and log", async () => {
+  const root = mkdtempSync(join(tmpdir(), "dsh-nix-refusal-"));
+  const directory = join(root, "sessions", "project", oldId);
+  const log = join(directory, "session.v4.jsonl.zstd");
+  const previousHome = process.env.DSH_HOME;
+  process.env.DSH_HOME = root;
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(log, "must survive a refused switch");
+  try {
+    for (const scenes of [undefined, { open: () => false }]) {
+      const outcome = await handleDshNixCommand({
+        get(name: string): unknown {
+          if (name === "tuiScenes") return scenes;
+          if (name === "userQuestions") {
+            return { ask: async () => ({ answers: [{ id: "confirm", selected: ["Start"] }] }) };
+          }
+          assert.fail(`refused switch must not access cleanup service ${name}`);
+        },
+      }, { rawInput: "", agent: { session: { id: oldId } } });
+      assert.equal(outcome.kind, "error");
+      assert.equal(existsSync(directory), true);
+      assert.equal(readFileSync(log, "utf8"), "must survive a refused switch");
+    }
+  } finally {
+    if (previousHome === undefined) delete process.env.DSH_HOME;
+    else process.env.DSH_HOME = previousHome;
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("DSH /nix quit deletes without creating and exits", async () => {
