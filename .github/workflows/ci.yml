@@ -130,6 +130,8 @@ jobs:
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: '11.28.5'
+          # A persistent ~/setup-pnpm can break the next matrix cell.
+          dest: ${{ runner.temp }}/setup-pnpm
           run_install: false
       # Gate each live cell locally so another OS's runner queue cannot block it.
       - name: Check package before upstream integration
