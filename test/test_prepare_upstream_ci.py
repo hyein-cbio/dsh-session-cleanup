@@ -31,6 +31,7 @@ class PrepareTests(unittest.TestCase):
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({"version": version}))
         self.env = patch.dict(os.environ, {
+            "DSH_COMPAT_PAIR": "validated",
             "DSH_COMPAT_HARNESS_ROOT": str(self.harness), "DSH_COMPAT_TUI_ROOT": str(self.tui),
             "DSH_COMPAT_HOME": str(self.home), "DSH_COMPAT_LOG": str(self.log),
             "GITHUB_ENV": str(self.github_env), "TEST_SECRET": "do-not-inherit",

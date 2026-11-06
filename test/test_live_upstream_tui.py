@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 with patch.dict(os.environ, {
+    "DSH_COMPAT_PAIR": "validated",
     "DSH_COMPAT_BIN": "/unused/bin.js",
     "DSH_COMPAT_HOME": "/unused/home",
     "DSH_COMPAT_CWD": "/unused/home/profile",
@@ -109,6 +110,7 @@ class DriverTests(unittest.TestCase):
         ):
             with patch.dict(os.environ, {
                 "DSH_COMPAT_PAIR": pair,
+                "DSH_COMPAT_LOG": str(self.home / "pair-logs"),
                 "DSH_COMPAT_BIN": str(self.harness / "apps/cli/lib/bin.js"),
                 "DSH_COMPAT_HOME": str(self.home), "DSH_COMPAT_CWD": str(self.cwd),
                 "DSH_COMPAT_HARNESS_ROOT": str(self.harness), "DSH_COMPAT_TUI_ROOT": str(self.tui),
