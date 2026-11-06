@@ -50,8 +50,8 @@ jobs:
         os: [ubuntu-24.04, macos-15]
         cell:
           - {pair: validated, node: '22.23.4'}
-          # Pinned PR #1886 candidate, not released TUI support for DSH 0.2.2.
-          - {pair: candidate-022, node: '24.22.1'}
+          # Final PR #1886 merge; v0.19.0 is a separate release commit.
+          - {pair: merged-022, node: '24.22.1'}
     env:
       DSH_COMPAT_PAIR: ${{ matrix.cell.pair }}
       # Source identities and versions come from scripts/upstream_pairs.py.
@@ -95,6 +95,14 @@ jobs:
           run_install: false
       - name: Build sources and install an isolated profile
         run: python3 scripts/prepare-upstream-ci.py
+      - name: Check final adapter projection and model lifecycle
+        if: matrix.cell.pair == 'merged-022'
+        working-directory: ${{ env.DSH_COMPAT_TUI_ROOT }}
+        env:
+          NODE_ENV: production
+        run: |
+          node --import ./scripts/lib/fake-home.mjs --import tsx/esm scripts/verify-plugin-lifecycle.ts 2>&1 | tee "$DSH_COMPAT_LOG/upstream-projection-lifecycle.log"
+          node --import ./scripts/lib/fake-home.mjs --import tsx/esm scripts/verify-durable-model-selection.ts 2>&1 | tee "$DSH_COMPAT_LOG/upstream-durable-model.log"
       - name: Check real Cordis and TUI ownership lifecycle
         run: node scripts/check-upstream-lifecycle.mjs
       - name: Run real upstream PTY checks

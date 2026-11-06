@@ -66,8 +66,9 @@ def main() -> None:
     env["CI"] = "true"
     # These are source builds. Keep upstream lockfiles and compatibility gates intact.
     run("harness-install", ["pnpm", "install", "--frozen-lockfile"], harness, env, log)
-    run("harness-native", ["pnpm", "run", "build:native-system"], harness, env, log)
-    run("harness-build", ["pnpm", "exec", "tsx", "scripts/compile-referenced-projects.ts", "host-libraries"], harness, env, log)
+    # The loader runs the same sources without the tsx CLI's auxiliary IPC socket.
+    run("harness-native", [node, "--import", "tsx/esm", "native/system/scripts/build.ts", "--host-addon-only"], harness, env, log)
+    run("harness-build", [node, "--import", "tsx/esm", "scripts/compile-referenced-projects.ts", "host-libraries"], harness, env, log)
     # The base bundle also mounts these Node halves of dual-client packages.
     run("harness-dual-client", ["pnpm", "--filter", "@deepseek-ai/dsh-typert-registry",
                                 "--filter", "@deepseek-ai/dsh-api-gateway", "run", "bundle"], harness, env, log)

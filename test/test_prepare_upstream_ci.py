@@ -75,8 +75,9 @@ class PrepareTests(unittest.TestCase):
     def test_bootstrap_builds_pinned_sources_and_exports_real_profile_paths(self):
         prepare.main()
         commands = [args for args, _cwd, _env in self.commands]
-        self.assertIn(["pnpm", "run", "build:native-system"], commands)
-        self.assertIn(["pnpm", "exec", "tsx", "scripts/compile-referenced-projects.ts", "host-libraries"], commands)
+        node = shutil.which("node")
+        self.assertIn([node, "--import", "tsx/esm", "native/system/scripts/build.ts", "--host-addon-only"], commands)
+        self.assertIn([node, "--import", "tsx/esm", "scripts/compile-referenced-projects.ts", "host-libraries"], commands)
         self.assertIn(["pnpm", "install", "--frozen-lockfile", "--ignore-scripts", "--config.node-linker=hoisted"], commands)
         self.assertTrue(all("TEST_SECRET" not in env for _args, _cwd, env in self.commands))
         install, cwd, env = self.commands[-1]

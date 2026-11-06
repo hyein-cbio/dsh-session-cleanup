@@ -8,7 +8,7 @@ The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x8
 
 `.github/workflows/ci.yml` runs on pushes to `main`, pull requests, and manual dispatch. It does not use Pullfrog, model-provider credentials, or a paid review service. Its token has read-only repository access, and checkout credentials are not persisted.
 
-Both jobs use an independent `ubuntu-24.04` / `macos-15` matrix with `fail-fast: false` and Python `3.12`. Package checks cover Node `22.23.4` and `24.22.1`. Live checks use the `validated` pair on Node `22.23.4` and the `candidate-022` pair on Node `24.22.1`. `scripts/upstream_pairs.py` supplies their exact repository/commit/version pins to checkout and driver preflight. The candidate remains a pinned, unreleased TUI PR, not a declaration that released TUI supports DSH 0.2.2:
+Both jobs use an independent `ubuntu-24.04` / `macos-15` matrix with `fail-fast: false` and Python `3.12`. Package checks cover Node `22.23.4` and `24.22.1`. Live checks use the `validated` pair on Node `22.23.4` and the `merged-022` pair on Node `24.22.1`. `scripts/upstream_pairs.py` supplies their exact repository/commit/version pins to checkout and driver preflight. The new cell pins the final PR #1886 merge, separately from the later v0.19.0 release:
 
 - **Package checks**: `npm ci`, `npm run check` (TypeScript tests and Python driver/bootstrap regressions), `npm pack --dry-run`, and a tracked-file/whitespace check.
 - **Live upstream PTY**: after package checks pass, check out the exact Harness and TUI commits selected by the named pair (including the TUI submodule), build the native addon and host libraries, build/pack the TUI, build/pack this plugin, and install both tarballs through the real Harness plugin manager in a new disposable HOME. `scripts/prepare-upstream-ci.py` performs this preparation, refuses an existing HOME, and exports the paths for the driver. Upstream lockfiles and compatibility gates are not bypassed. TUI installation/packing uses the hoisted linker required for its bundled dependencies.
@@ -24,6 +24,37 @@ Each live job is bounded to 45 minutes. Build/install logs and PTY evidence are 
 Manual run after the workflow reaches the default branch: GitHub **Actions → CI → Run workflow**, or `gh workflow run ci.yml --ref main`. Inspect both OS jobs and download their artifacts. The hosted verification below records the successful run, platform details, and reviewed artifacts; future runs need the same evidence before extending that record.
 
 During workflow development, local macOS arm64 source builds and isolated tarball installation completed with Node `26.13.0`. The real PTY run passed boot, help, cancellation, native-addon provenance, resume, and the cache-existence precondition, but failed confirmed `/nix`: the TUI reported `dsh-tui has no nix switch scene registered.` This is a failing integration result, not a macOS compatibility pass. The hosted Node `22.23.4` results are recorded separately below.
+
+## Final TUI merge review (2026-11-06)
+
+The current CI new-line cell is `merged-022`: DSH `0.2.2-rc.1` at `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`, TUI at [`e7336a62030064daa2e4593f0ec7311c9c362b71`](https://github.com/ccch1mneyyy/dsh-TUI/commit/e7336a62030064daa2e4593f0ec7311c9c362b71), Node `24.22.1`. The `validated` cell keeps its original DSH `0.2.1-rc.5` / released TUI `v0.18.0` pins on Node `22.23.4`. The historical `candidate-022` cell remains available for reproducing the November 5 evidence, but no longer runs in CI.
+
+### Execution-path comparison
+
+The range [`fb0b5325...e7336a62`](https://github.com/ccch1mneyyy/dsh-TUI/compare/fb0b5325be7704fbdd09a7d7d8d642fca4d42f77...e7336a62030064daa2e4593f0ec7311c9c362b71) changes 22 files. PR head `3bb0c26cf252751c5659e598f672a76ef065545f` and squash merge `e7336a62` have identical Git trees. The candidate's 33 macOS assertions remain evidence for `fb0b5325` only.
+
+| Changed code | Effect on `/nix` and verification |
+| --- | --- |
+| `src/dsh-adapter/host-access.ts` | Root projection registrations now retain their callable and lazy `then`/`catch`/`finally` interfaces, modern reader handles, and legacy async disposers. Release is idempotent; rejected readiness and completed async owner teardown release the exact registration and watcher. This can affect session setup/disposal indirectly. It does not grant root access to plugin scenes. |
+| `src/dsh-adapter/backend/session.ts` | Live `request/context` events with a known provider/model that differs from the Agent's current selection no longer update the new route's capacity. Raw history remains intact. This is separate from session IDs, scene ownership, and filesystem removal. |
+| `src/dsh-adapter/plugin.ts`, `src/update.ts` | Update restart proves launcher/engine identity and carries an engine-skip report to a surviving mount. The added mount effect has a disposer. `/nix` does not invoke `/update`; the PTY quit/restart checks cover ordinary exit and fresh launch, not a real global upgrade. |
+| Unchanged scene and switch paths | `scenes.ts`, the channel session-switch implementation, and this plugin's `src/` are unchanged. `/nix` still confirms, opens its owner-bound scene, awaits `channel.newSession()`, and only then deletes the previous session. A refused switch returns before deletion. |
+
+The lifecycle checker now explicitly rejects a foreign activation's scene open and checks that refusal leaves no active scene, both before and after TUI service reload. It retains both startup orders and command/scene disposal checks. Driver preflight tests reject exchanging candidate and final commits even though both TUI manifests say `0.18.0`. The merged CI cell also runs upstream `verify-plugin-lifecycle.ts` and `verify-durable-model-selection.ts` in temporary HOME directories, saving their output with the PTY evidence.
+
+### Verification status and limits
+
+The local Linux attempt installed frozen upstream dependencies and built both native addons using Node `22.23.4` / `24.22.1`. The original `tsx` CLI failed because this environment rejects its auxiliary IPC socket. Preparation now executes the same native and host build sources through `node --import tsx/esm`, retaining native compilation, checked host compilation, lockfiles, and all compatibility gates.
+
+Local package checks passed 48 TypeScript and 38 Python tests before the final CI-only addition; the modified pin/bootstrap Python tests were rerun and all 38 passed. The execution server disconnected during upstream compilation and became unavailable. Neither local PTY suite completed, and the attempted upstream lifecycle scripts initially lacked unbuilt vendor outputs. These interrupted attempts are **not compatibility passes**. Hosted results must be assessed from the new PR's actual jobs, `LIVE_OK`, and complete reports. Earlier candidate results do not supply a verdict for the merge.
+
+Every runtime profile uses a new disposable HOME with local source-built tarballs and scrubbed credentials. The PTY suite covers cancellation, adoption before removal, projection/pin/archive cleanup, preservation of an unrelated session, post-switch command use, `/nix quit`, and restart without resurrection. Foreign-owner refusal is a real Cordis/TUI lifecycle check; refusal-preserves-files also has unit coverage. The PTY suite does not deliberately remove the scene or run authenticated/model-backed activity. Linux deletion and macOS Trash are distinct assertions.
+
+### Merge and release identities
+
+[TUI PR #1886](https://github.com/ccch1mneyyy/dsh-TUI/pull/1886) merged at 03:14 UTC. GitHub subsequently published [`v0.19.0`](https://github.com/ccch1mneyyy/dsh-TUI/releases/tag/v0.19.0) at **03:32:50 UTC**, pointing to `224f847d02c2157f43862d2792cf9d7459222f4c`. Its `src/`, `scripts/`, lockfile, and `cordis.patch.yml` match the merge; the release changes the package version, documentation, and feed metadata. This CI cell tests the exact merge tarball, whose manifest still says `0.18.0`. Source equality does not replace testing a separately packed or published release artifact.
+
+Plugin runtime remains the unreleased fix merged in [PR #6](https://github.com/hyein-cbio/dsh-session-cleanup/pull/6). This review does not bump its `0.2.2` package version, tag a release, or publish to npm. Published plugin `0.2.2` must not be assumed to contain PR #6.
 
 ## Local dual-line verification (2026-11-05, unreleased fix)
 
