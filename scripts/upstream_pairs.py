@@ -29,6 +29,15 @@ PAIRS = {
         "tui_ref": "e7336a62030064daa2e4593f0ec7311c9c362b71",
         "tui_version": "0.18.0",
     },
+    # Published GitHub Latest v0.19.0. Not the unreleased merge above.
+    "released-019": {
+        "harness_repository": "deepseek-ai/deepseek-harness",
+        "harness_ref": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+        "harness_version": "0.2.2-rc.1",
+        "tui_repository": "ccch1mneyyy/dsh-TUI",
+        "tui_ref": "224f847d02c2157f43862d2792cf9d7459222f4c",
+        "tui_version": "0.19.0",
+    },
 }
 
 

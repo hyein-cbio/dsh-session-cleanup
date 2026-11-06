@@ -97,7 +97,7 @@ Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-
 
 The final-merge tests use the **unreleased plugin fix in this checkout**. Published plugin `0.2.2` does not contain that fix. The earlier local macOS ARM64 **33/33** result for TUI candidate `fb0b5325` remains a separate historical result; it does not verify the final merge on macOS. A completed Linux job does not mean the whole CI run succeeded.
 
-Exact source commits matter: released TUI `v0.18.0`, candidate `fb0b5325`, and final merge `e7336a62` all report package version `0.18.0` but differ in source. TUI `v0.19.0` is a later release at `224f847d`; the published artifact has not been tested by this matrix. DSH `0.2.2-rc.1` requires Node **>=24.9.0**. Installing released TUI `v0.18.0` does not establish support for that DSH line. See [TESTING.md](TESTING.md) for full pins, reports, and limitations.
+Exact source commits matter: released TUI `v0.18.0`, candidate `fb0b5325`, and final merge `e7336a62` all report package version `0.18.0` but differ in source. Published TUI `v0.19.0` (`224f847d`) with Harness `0.2.2-rc.1` (`66491b05`) is verified locally on Linux x86_64, Node `24.22.1` (32/32 live PTY assertions). That cell is not in the CI matrix. `UPSTREAM_VALIDATED_VERSION` on that TUI commit is `0.2.2-rc.1`. macOS Trash was not retested for `v0.19.0`. DSH `0.2.2-rc.1` requires Node **>=24.9.0**. See [TESTING.md](TESTING.md) for full pins, reports, and limitations.
 
 Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`. This package has no npm runtime dependencies; the DSH host supplies the required services.
 
