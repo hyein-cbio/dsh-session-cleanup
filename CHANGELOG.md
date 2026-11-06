@@ -9,6 +9,7 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 ## [Unreleased]
 
 ### Compatibility verification
+- Verified on Linux with published dsh-TUI `v0.19.0` (`224f847d02c2157f43862d2792cf9d7459222f4c`) and the Harness line that commit names, `0.2.2-rc.1` (`66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`). `UPSTREAM_VALIDATED_VERSION` is `0.2.2-rc.1`. Live `/nix` and `/nix quit` checks passed. No newer Harness GitHub release was published. `dsh-v0.2.2-alpha.2` and `dsh-v0.2.2-alpha.3` are outside that TUI's supported set and were not tested. macOS Trash was not tested for this pair. This cell is not the final-merge CI pin. See [TESTING.md](TESTING.md).
 - Pin the new DSH `0.2.2-rc.1` CI cell to final TUI PR #1886 merge `e7336a62`, retaining the old supported pair and historical candidate pin.
 - Check foreign scene-owner refusal across reload; run the final adapter's projection and model lifecycle regressions before real PTY checks. Use the tsx ESM loader for native/host build sources without its CLI IPC socket.
 - Record hosted Linux 32/32 real PTY passes for both old and final-merge pairs, final adapter lifecycle 113 checks and model-selection 21 scenarios, and still-queued macOS jobs. Preserve full reports/deletion traces and distinguish the separate TUI `v0.19.0` release. No plugin runtime change, version bump, tag, or npm publication.

@@ -135,6 +135,33 @@ class DriverTests(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     candidate.validate_sources(candidate.Report())
 
+    def test_released_019_pair_checks_published_sources(self):
+        published = "224f847d02c2157f43862d2792cf9d7459222f4c"
+        with patch.dict(os.environ, {
+            "DSH_COMPAT_PAIR": "released-019",
+            "DSH_COMPAT_LOG": str(self.home / "pair-logs"),
+            "DSH_COMPAT_BIN": str(self.harness / "apps/cli/lib/bin.js"),
+            "DSH_COMPAT_HOME": str(self.home), "DSH_COMPAT_CWD": str(self.cwd),
+            "DSH_COMPAT_HARNESS_ROOT": str(self.harness), "DSH_COMPAT_TUI_ROOT": str(self.tui),
+        }):
+            spec = importlib.util.spec_from_file_location("released_driver", ROOT / "scripts/live-upstream-tui.py")
+            released = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(released)
+        self.assertEqual(released.EXPECTED_HARNESS_HEAD, "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db")
+        self.assertEqual(released.EXPECTED_TUI_HEAD, published)
+        heads = {str(self.harness): released.EXPECTED_HARNESS_HEAD, str(self.tui): published}
+        with patch.object(released, "git_head", side_effect=lambda root: heads[root]):
+            with self.assertRaises(SystemExit):
+                released.validate_sources(released.Report())
+            (self.harness / "apps/cli/package.json").write_text('{"name":"@deepseek-ai/dsh","version":"0.2.2-rc.1"}')
+            (self.tui / "package.json").write_text('{"name":"@deepseek-harness-tui/dsh-tui","version":"0.19.0"}')
+            report = released.Report()
+            released.validate_sources(report)
+            self.assertTrue(all(row["ok"] for row in report.rows))
+            heads[str(self.tui)] = "e7336a62030064daa2e4593f0ec7311c9c362b71"
+            with self.assertRaises(SystemExit):
+                released.validate_sources(released.Report())
+
     def test_sandbox_aliases_are_canonicalized_before_spawning(self):
         alias = self.home / "alias"
         alias.symlink_to(self.home, target_is_directory=True)

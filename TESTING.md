@@ -4,6 +4,62 @@ This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x86_64 permanent deletion for the pinned upstream pair. Earlier local and Linux-only results remain separate historical records.
 
+## Published dsh-TUI v0.19.0 (2026-11-06)
+
+GitHub Latest for dsh-TUI is `v0.19.0` (non-draft, non-prerelease). On that commit, `src/dsh-adapter/contract.ts` sets `UPSTREAM_VALIDATED_VERSION` to `0.2.2-rc.1`, which is also the greatest entry in `UPSTREAM_VALIDATED_VERSIONS` (alpha < beta < rc). npm semver `7.7.4` with `includePrerelease: true` says that version satisfies all 36 `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer ranges at once. The versions in the explicit list that also satisfy every harness peer range and have a published non-draft Harness release are `0.2.0-rc.2`, `0.2.1-rc.2`, `0.2.1-rc.3`, `0.2.1-rc.4`, `0.2.1-rc.5`, and `0.2.2-rc.1`. This run tested only the greatest, `0.2.2-rc.1`.
+
+No DeepSeek Harness GitHub release is newer than `dsh-v0.2.2-rc.1`. `dsh-v0.2.2-alpha.2` and `dsh-v0.2.2-alpha.3` are outside `UPSTREAM_VALIDATED_VERSIONS`, fail all 36 harness peer ranges, and are not pending work. This is the first verification of this published pair. It is not the `merged-022` cell: that cell packs TUI `e7336a62`, whose manifest still says `0.18.0`.
+
+| Cell | Harness | dsh-TUI | Result |
+| --- | --- | --- | --- |
+| Line named by published dsh-TUI `v0.19.0` | `0.2.2-rc.1`, tag `dsh-v0.2.2-rc.1` | `0.19.0`, tag `v0.19.0` | **VERIFIED** on Linux |
+
+Node `v24.22.1`. Kernel `Linux 6.12.113+ x86_64`. Plugin runtime is `main` at `39e21b1` (no `src/` change since `31966db`). Package version stayed `0.2.2`. macOS Trash was not tested. CI was not changed, so this cell stays opt-in via `DSH_COMPAT_PAIR=released-019`.
+
+### Release identity
+
+- Harness: `deepseek-ai/deepseek-harness`, release `433935433`, tag `dsh-v0.2.2-rc.1`, commit `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`, published `2026-11-04T13:07:14Z`, https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1. Source manifests `@deepseek-ai/dsh` and `@deepseek-ai/dsh-root` are `0.2.2-rc.1`.
+- dsh-TUI: `ccch1mneyyy/dsh-TUI`, release `436069606`, tag `v0.19.0`, annotated tag object `c7aec055dffee85de7688ab9f1ba77b53a0905d4`, commit `224f847d02c2157f43862d2792cf9d7459222f4c`, published `2026-11-06T03:32:50Z`, https://github.com/ccch1mneyyy/dsh-TUI/releases/tag/v0.19.0. Manifest `@deepseek-harness-tui/dsh-tui` is `0.19.0`.
+- Both disposable checkouts' HEADs matched those commits. Submodule `vendor/dsh-std` gitlink `614dfa1ac168db79fcf4577cf0ebb34e2e3b944b` was checked out and bundled into the TUI tarball.
+- Before compiling the TUI, its `@deepseek-ai/*` installs were replaced with symlinks into the Harness checkout (230 packages). Left on their own lines: `@deepseek-ai/dsh-invariants@0.1.1-rc.2`, `@deepseek-ai/dsh-session-persistence-sqlite@0.1.1-rc.2`, and the LibreOffice kit packages. They are not the Harness release under test. The isolated profile dependencies are `file:` tarballs of that TUI pack and this plugin.
+- The live host was `node apps/cli/lib/bin.js` from the Harness checkout. `/proc/<pid>/maps` showed `native/system/packages/linux-x64/bin/glibc/system.node` from that tree. A resolve probe during boot recorded `@deepseek-ai/dsh-session`, `@deepseek-ai/dsh-session-persistence`, and the other logged `@deepseek-ai/*` requests under that checkout. None resolved to a registry copy. JavaScript sources do not appear as file mappings in `/proc/<pid>/maps`.
+
+### Support rule
+
+Read from commit `224f847d02c2157f43862d2792cf9d7459222f4c` only. `UPSTREAM_VALIDATED_VERSION` itself passed the peer intersection, so it was the version installed. `@deepseek-ai/cordis`, `@deepseek-ai/schemastery`, and `@anthropic-ai/claude-agent-sdk` are not the harness version line. pnpm workspace overrides were not the support ceiling.
+
+### Change analysis
+
+The closest Linux-verified record on main is `merged-022`: the same Harness commit `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` and TUI `e7336a62030064daa2e4593f0ec7311c9c362b71`. `git diff` of those TUI commits changes documentation, release notes, `package.json` version `0.18.0` to `0.19.0`, and the same version string in `tui-profile/feed/first-party.json`. `src/`, `scripts/`, the lockfile, and `cordis.patch.yml` are unchanged. There is no Harness delta from that record. The existing live assertions cover the unchanged integration. `test_released_019_pair_checks_published_sources` is the added check that a `0.18.0` manifest or the merge SHA is refused when this pair is selected.
+
+The last dual-platform verified pair remains Harness `b830ec950faba0a46dda564be3e2d854afed94f1` with TUI `1d0d946f459da5149aba64cc6cc0ef7da304053c`. From that baseline, scene registration and `channel.newSession()` are unchanged; question and projection-cache type moves do not change the confirm payload or the `session_projcache` table; workspace pin and archive fields are unchanged; `/update` planning is outside `/nix quit`. Those paths were exercised again on the published pair below. No production source change was required.
+
+### Live `/nix` checks
+
+Isolated `HOME` / `DSH_HOME` / XDG tree under `/tmp/compat-sandbox/home`. `DSH_TUI_NO_LAUNCHPAD=1`. No model calls. `python3 scripts/live-upstream-tui.py` with `DSH_COMPAT_PAIR=released-019` drives a real PTY.
+
+| Check | Result |
+| --- | --- |
+| Source HEADs and manifests match the releases above | pass |
+| Profile dependencies are `file:` tarballs; installed plugin `0.2.2` and TUI `0.19.0` | pass |
+| Packed plugin loads; `/nix help` shows usage | pass |
+| Host cmdline is the Harness checkout; native addon is that checkout's `system.node` | pass |
+| Cancelling confirmation keeps the original session log | pass |
+| Confirmed `/nix` adopts a different session id while the old directory still exists, then removes it with `rmSync` | pass |
+| Projection cache, workspace membership, pins, and archive references drop the deleted id and keep the control id | pass |
+| The new session accepts `/nix help` | pass |
+| `/nix quit` exits 0 and removes the adopted session directory | pass |
+| Restart does not recreate either deleted session | pass |
+| The unrelated control session directory and pin remain | pass |
+
+A fresh profile passed 32 assertions, 0 failed, 0 skipped, including workspace initialization. The same driver was run again on that already-initialized sandbox after this tree's package checks: 31 passed, 0 failed, 0 skipped. The only assertion absent from the rerun is `initialize-workspace`, which the driver skips when storage already exists. The switch scene was present, so both runs exercised the real switch. Refusal without deletion remains the unit test `DSH /nix does not delete when the TUI refuses to switch`. Linux permanent removal was observed. macOS Trash was not tested.
+
+`node scripts/check-upstream-lifecycle.mjs` against this TUI build passed early and late startup, including foreign-owner refusal, removal, reload, and disposal.
+
+### Package checks
+
+On this tree, Node `v24.22.1`: `npm ci` exit 0, `npm run check` exit 0 (48 TypeScript tests passed, 0 failed, 0 skipped; 39 Python tests OK), `npm pack --dry-run` exit 0 for `dsh-session-cleanup@0.2.2`. Unit tests do not replace the live checks above.
+
 ## GitHub Actions CI
 
 `.github/workflows/ci.yml` runs on pushes to `main`, pull requests, and manual dispatch. It does not use Pullfrog, model-provider credentials, or a paid review service. Its token has read-only repository access, and checkout credentials are not persisted.
