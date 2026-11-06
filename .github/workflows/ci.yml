@@ -38,9 +38,21 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      # macOS setup-python downloads require /Users/runner/hostedtoolcache.
+      # Self-hosted machines use their provisioned python3; never sudo/install
+      # into another user's home just to imitate a GitHub-hosted image.
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        if: runner.environment == 'github-hosted'
         with:
           python-version: '3.12'
+      - name: Verify Python interpreter
+        run: |
+          python3 - <<'PY'
+          import sys
+          if not (3, 10) <= sys.version_info < (4, 0):
+              raise SystemExit("Provision Python 3.10+ on PATH before starting the self-hosted runner")
+          print(f"Python: {sys.executable}\n{sys.version}")
+          PY
       - run: npm ci
       - run: npm run check
       - run: npm pack --dry-run
@@ -73,11 +85,25 @@ jobs:
       - name: Configure disposable sandbox and evidence directory
         run: |
           mkdir -p "$RUNNER_TEMP/dsh-compat-results"
+          # Leave evidence even when tool setup fails before any build starts.
+          uname -srm > "$RUNNER_TEMP/dsh-compat-results/runner.txt"
           echo "DSH_COMPAT_HOME=$RUNNER_TEMP/dsh-compat-home" >> "$GITHUB_ENV"
           echo "DSH_COMPAT_LOG=$RUNNER_TEMP/dsh-compat-results" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        if: runner.environment == 'github-hosted'
+        with:
+          python-version: '3.12'
+      - name: Verify Python interpreter
+        run: |
+          python3 - <<'PY' | tee -a "$DSH_COMPAT_LOG/runner.txt"
+          import sys
+          if not (3, 10) <= sys.version_info < (4, 0):
+              raise SystemExit("Provision Python 3.10+ on PATH before starting the self-hosted runner")
+          print(f"Python: {sys.executable}\n{sys.version}")
+          PY
       - name: Select pinned upstream pair
         id: upstream
         run: python3 scripts/upstream_pairs.py >> "$GITHUB_OUTPUT"
@@ -98,9 +124,6 @@ jobs:
         with:
           node-version: ${{ matrix.cell.node }}
           cache: npm
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: '3.12'
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: '11.28.5'
