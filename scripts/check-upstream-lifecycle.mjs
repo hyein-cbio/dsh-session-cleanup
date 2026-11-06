@@ -46,9 +46,6 @@ for (const late of [false, true]) {
   let disposals = 0;
   try {
     let foreignOwner;
-    await root.plugin({ name: "foreign-scene-owner-fixture", apply(ctx) {
-      foreignOwner = ctx;
-    } });
     await root.plugin({ name: "lifecycle-commands-fixture", apply(ctx) {
       ctx.provide("commands", { register(definition) {
         assert.equal(commands.has(definition.name), false, "duplicate command registration");
@@ -76,6 +73,10 @@ for (const late of [false, true]) {
       sceneFiber = await root.plugin(TuiSceneRuntime);
     }
     await cleanupFiber;
+    // The real TUI must establish composition tracking before this activation.
+    await root.plugin({ name: "foreign-scene-owner-fixture", apply(ctx) {
+      foreignOwner = ctx;
+    } });
 
     function assertSceneAndCommand() {
       const host = getHostSceneRuntime(root.get("tuiScenes"));
