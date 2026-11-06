@@ -41,7 +41,6 @@ jobs:
 
   live:
     name: Live upstream PTY (${{ matrix.os }}, ${{ matrix.cell.pair }})
-    needs: check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -50,8 +49,8 @@ jobs:
         os: [ubuntu-24.04, macos-15]
         cell:
           - {pair: validated, node: '22.23.4'}
-          # Pinned PR #1886 candidate, not released TUI support for DSH 0.2.2.
-          - {pair: candidate-022, node: '24.22.1'}
+          # Final PR #1886 merge; v0.19.0 is a separate release commit.
+          - {pair: merged-022, node: '24.22.1'}
     env:
       DSH_COMPAT_PAIR: ${{ matrix.cell.pair }}
       # Source identities and versions come from scripts/upstream_pairs.py.
@@ -93,12 +92,38 @@ jobs:
         with:
           version: '11.28.5'
           run_install: false
+      # Gate each live cell locally so another OS's runner queue cannot block it.
+      - name: Check package before upstream integration
+        run: |
+          npm ci
+          npm run check
+          npm pack --dry-run
+          git diff --exit-code && git diff --check
       - name: Build sources and install an isolated profile
         run: python3 scripts/prepare-upstream-ci.py
+      - name: Check final adapter projection and model lifecycle
+        shell: bash
+        if: matrix.cell.pair == 'merged-022'
+        working-directory: ${{ env.DSH_COMPAT_TUI_ROOT }}
+        env:
+          NODE_ENV: production
+        run: |
+          node --import ./scripts/lib/fake-home.mjs --import tsx/esm scripts/verify-plugin-lifecycle.ts 2>&1 | tee "$DSH_COMPAT_LOG/upstream-projection-lifecycle.log"
+          node --import ./scripts/lib/fake-home.mjs --import tsx/esm scripts/verify-durable-model-selection.ts 2>&1 | tee "$DSH_COMPAT_LOG/upstream-durable-model.log"
       - name: Check real Cordis and TUI ownership lifecycle
         run: node scripts/check-upstream-lifecycle.mjs
       - name: Run real upstream PTY checks
         run: python3 scripts/live-upstream-tui.py
+      - name: Record PTY reports in job logs
+        if: always()
+        run: |
+          for report in live-full.json switch-deletions.jsonl; do
+            if [ -f "$DSH_COMPAT_LOG/$report" ]; then
+              echo "::group::$report"
+              cat "$DSH_COMPAT_LOG/$report"
+              echo "::endgroup::"
+            fi
+          done
       - name: Upload compatibility evidence (including failures)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

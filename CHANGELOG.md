@@ -8,6 +8,11 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 
 ## [Unreleased]
 
+### Compatibility verification
+- Pin the new DSH `0.2.2-rc.1` CI cell to final TUI PR #1886 merge `e7336a62`, retaining the old supported pair and historical candidate pin.
+- Check foreign scene-owner refusal across reload; run the final adapter's projection and model lifecycle regressions before real PTY checks. Use the tsx ESM loader for native/host build sources without its CLI IPC socket.
+- Record hosted Linux 32/32 real PTY passes for both old and final-merge pairs, final adapter lifecycle 113 checks and model-selection 21 scenarios, and still-queued macOS jobs. Preserve full reports/deletion traces and distinguish the separate TUI `v0.19.0` release. No plugin runtime change, version bump, tag, or npm publication.
+
 ### Fixed
 - Declare `tuiScenes` as a required Cordis service alongside `commands`. Startup now waits for the TUI and registers/opens the `/nix` switch scene from the same activation, rather than registering it in a delayed child activation that the command cannot own.
 - Report a refused scene as missing **or owned by another activation**, rather than always claiming it was unregistered.

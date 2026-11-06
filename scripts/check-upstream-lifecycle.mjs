@@ -45,6 +45,7 @@ for (const late of [false, true]) {
   let registrations = 0;
   let disposals = 0;
   try {
+    let foreignOwner;
     await root.plugin({ name: "lifecycle-commands-fixture", apply(ctx) {
       ctx.provide("commands", { register(definition) {
         assert.equal(commands.has(definition.name), false, "duplicate command registration");
@@ -72,10 +73,17 @@ for (const late of [false, true]) {
       sceneFiber = await root.plugin(TuiSceneRuntime);
     }
     await cleanupFiber;
+    // The real TUI must establish composition tracking before this activation.
+    await root.plugin({ name: "foreign-scene-owner-fixture", apply(ctx) {
+      foreignOwner = ctx;
+    } });
 
     function assertSceneAndCommand() {
       const host = getHostSceneRuntime(root.get("tuiScenes"));
       assert.deepEqual(host.list().map(scene => scene.id), [sceneId]);
+      assert.equal(foreignOwner.get("tuiScenes").open(sceneId), false,
+        "another activation must not open the cleanup plugin's scene");
+      assert.equal(host.active, undefined, "refused foreign open must leave the scene inactive");
       // This was false on the broken delayed-injection path despite a listed scene.
       assert.equal(owner.get("tuiScenes").open(sceneId), true, "command owner must own its scene");
       assert.equal(host.active?.id, sceneId);
@@ -99,7 +107,7 @@ for (const late of [false, true]) {
     assert.equal(commands.size, 0);
     assert.deepEqual(nextHost.list(), [], "plugin disposal must release its scene");
     assert.equal(disposals, 2);
-    console.log(`LIFECYCLE_OK ${late ? "late" : "early"} TUI; owner, removal, reload, disposal`);
+    console.log(`LIFECYCLE_OK ${late ? "late" : "early"} TUI; owner, foreign refusal, removal, reload, disposal`);
   } finally {
     releaseGuard();
     await root.fiber.dispose();
