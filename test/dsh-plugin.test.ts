@@ -8,12 +8,12 @@ test("package entry exports only the native DSH plugin", () => {
   assert.deepEqual(Object.keys(entry).sort(), ["apply", "inject", "name"]);
   assert.equal(entry.apply, apply);
   assert.equal(entry.name, "dsh-session-cleanup");
-  assert.deepEqual(entry.inject, ["commands"]);
+  assert.deepEqual(entry.inject, ["commands", "tuiScenes"]);
 });
 
 test("apply registers /nix and disposes command registration", async () => {
   assert.equal(name, "dsh-session-cleanup");
-  assert.deepEqual(inject, ["commands"]);
+  assert.deepEqual(inject, ["commands", "tuiScenes"]);
 
   const registered: string[] = [];
   const handlers = new Map<string, (invocation: { rawInput: string }) => Promise<{ kind: string; text?: string }>>();

@@ -11,7 +11,7 @@ Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup).
 
 </div>
 
-Latest DSH release is **0.2.2** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2). See [CHANGELOG.md](CHANGELOG.md).
+Latest plugin release is **0.2.2** on [npm](https://www.npmjs.com/package/dsh-session-cleanup) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2). See [CHANGELOG.md](CHANGELOG.md).
 
 ## What this is
 
@@ -65,7 +65,7 @@ dsh --profile dsh-tui
 
 Both destructive commands ask for confirmation when `userQuestions` is mounted (dsh-tui does).
 
-`/nix` needs dsh-tui's scene switch (`channel.newSession()`). On any other profile it refuses rather than leaving you on a deleted conversation. Use `/nix quit` to delete and exit.
+`/nix` needs dsh-tui's scene switch (`channel.newSession()`). The plugin now waits for both `commands` and `tuiScenes` before activating, so the scene and command share the same Cordis owner even when the TUI starts later. Other profiles are unsupported and do not get `/nix`; `/nix quit` is also a command of the supported TUI profile. If a live switch is refused, the old session is not deleted.
 
 ## Safety
 
@@ -86,7 +86,7 @@ npm run check    # build + TypeScript/Python tests
 
 [GitHub Actions CI](.github/workflows/ci.yml) runs package checks and source-built live PTY checks on Ubuntu and macOS for pull requests, pushes to `main`, and manual runs. Live jobs upload build logs and verification evidence even on failure; package checks alone do not establish upstream compatibility.
 
-Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.5` with dsh-TUI `v0.18.0` is verified on Linux only. That TUI release names `0.2.1-rc.5` as `UPSTREAM_VALIDATED_VERSION`. Harness `dsh-v0.2.2-alpha.2` is outside that list and was not tested with `v0.18.0`. The older pair, Harness `0.2.1-rc.3` with dsh-TUI `v0.17.0`, stays verified on Linux. Harness `dsh-v0.2.2-alpha.2` with dsh-TUI `v0.17.0` is not supported.
+Upstream compatibility records live in [TESTING.md](TESTING.md). Harness `0.2.1-rc.5` with released dsh-TUI `v0.18.0` has hosted Linux/macOS verification. The **unreleased plugin fix in this checkout** also passes local macOS ARM64 live checks with that pair on Node `22.23.4` and with Harness `0.2.2-rc.1` plus the pinned **TUI PR #1886 candidate** on Node `24.22.1`. The candidate is not the released TUI `v0.18.0` commit, despite sharing its package version. DSH `0.2.2-rc.1` requires Node **>=24.9.0**; installing released TUI `v0.18.0` does not establish support for that DSH line. No TUI compatibility gates are bypassed. See the exact source pins, evidence, and limitations in the testing record.
 
 Native DSH entry: `dsh-entry.ts` → `lib/dsh-entry.js`. This package has no npm runtime dependencies; the DSH host supplies the required services.
 

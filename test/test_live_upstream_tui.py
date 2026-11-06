@@ -100,6 +100,53 @@ class DriverTests(unittest.TestCase):
             "harnessHead": driver.EXPECTED_HARNESS_HEAD, "tuiHead": driver.EXPECTED_TUI_HEAD,
         })
 
+    def test_candidate_pair_is_explicit_and_checks_its_own_sources(self):
+        with patch.dict(os.environ, {
+            "DSH_COMPAT_PAIR": "candidate-022",
+            "DSH_COMPAT_BIN": str(self.harness / "apps/cli/lib/bin.js"),
+            "DSH_COMPAT_HOME": str(self.home), "DSH_COMPAT_CWD": str(self.cwd),
+            "DSH_COMPAT_HARNESS_ROOT": str(self.harness), "DSH_COMPAT_TUI_ROOT": str(self.tui),
+        }):
+            spec = importlib.util.spec_from_file_location("candidate_driver", ROOT / "scripts/live-upstream-tui.py")
+            candidate = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(candidate)
+        self.assertEqual(candidate.EXPECTED_HARNESS_HEAD, "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db")
+        self.assertEqual(candidate.EXPECTED_TUI_HEAD, "fb0b5325be7704fbdd09a7d7d8d642fca4d42f77")
+        heads = {str(self.harness): candidate.EXPECTED_HARNESS_HEAD,
+                 str(self.tui): candidate.EXPECTED_TUI_HEAD}
+        with patch.object(candidate, "git_head", side_effect=lambda root: heads[root]):
+            # Correct SHAs alone cannot bless a version mismatch.
+            with self.assertRaises(SystemExit):
+                candidate.validate_sources(candidate.Report())
+            (self.harness / "apps/cli/package.json").write_text('{"version":"0.2.2-rc.1"}')
+            report = candidate.Report()
+            candidate.validate_sources(report)
+            self.assertTrue(all(row["ok"] for row in report.rows))
+            heads[str(self.tui)] = driver.EXPECTED_TUI_HEAD
+            with self.assertRaises(SystemExit):
+                candidate.validate_sources(candidate.Report())
+
+    def test_sandbox_aliases_are_canonicalized_before_spawning(self):
+        alias = self.home / "alias"
+        alias.symlink_to(self.home, target_is_directory=True)
+        with patch.dict(os.environ, {
+            "DSH_COMPAT_PAIR": "validated", "DSH_COMPAT_BIN": "/unused/bin.js",
+            "DSH_COMPAT_HOME": str(alias), "DSH_COMPAT_CWD": str(alias / "profile"),
+        }):
+            spec = importlib.util.spec_from_file_location("alias_driver", ROOT / "scripts/live-upstream-tui.py")
+            aliased = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(aliased)
+        self.assertEqual(aliased.HOME, str(self.home))
+        self.assertEqual(aliased.CWD, str(self.cwd))
+
+    def test_unknown_pair_is_refused_before_profile_changes(self):
+        with patch.dict(os.environ, {"DSH_COMPAT_PAIR": "unreviewed-latest"}):
+            spec = importlib.util.spec_from_file_location("unknown_driver", ROOT / "scripts/live-upstream-tui.py")
+            unknown = importlib.util.module_from_spec(spec)
+            with self.assertRaisesRegex(SystemExit, "unknown DSH_COMPAT_PAIR"):
+                spec.loader.exec_module(unknown)
+        self.assertEqual(self.workspace.read_text(), "profile must not change")
+
     def prepare_profile(self):
         sources = {key: json.loads((root / "package.json").read_text())
                    for key, root in (("plugin", self.plugin), ("tui", self.tui))}

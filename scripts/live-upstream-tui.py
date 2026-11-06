@@ -24,12 +24,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pty_screen import Screen
+from upstream_pairs import selected_pair
 
+UPSTREAM_PAIR = selected_pair()
 ROOT = Path(__file__).resolve().parents[1]
 CLI = os.environ.get("DSH_COMPAT_NODE", "/exec-daemon/node")
 BIN = os.environ["DSH_COMPAT_BIN"]
-HOME = os.environ["DSH_COMPAT_HOME"]
-CWD = os.environ["DSH_COMPAT_CWD"]
+# Give the host and deletion observer the same spelling (e.g. macOS /tmp is
+# /private/tmp). Otherwise real deletion can be invisible to the trace matcher.
+HOME = os.path.realpath(os.environ["DSH_COMPAT_HOME"])
+CWD = os.path.realpath(os.environ["DSH_COMPAT_CWD"])
 PROFILE = os.environ.get("DSH_COMPAT_PROFILE", "dsh-tui")
 DSH = Path(HOME) / ".dsh"
 WORKSPACE = DSH / "storages" / "workspace.json"
@@ -38,8 +42,8 @@ SESSIONS = DSH / "sessions"
 LOG = Path(os.environ.get("DSH_COMPAT_LOG", "/tmp/compat-src/live-run"))
 HARNESS = os.environ.get("DSH_COMPAT_HARNESS_ROOT", "")
 TUI_ROOT = os.environ.get("DSH_COMPAT_TUI_ROOT", "")
-EXPECTED_HARNESS_HEAD = "b830ec950faba0a46dda564be3e2d854afed94f1"
-EXPECTED_TUI_HEAD = "1d0d946f459da5149aba64cc6cc0ef7da304053c"
+EXPECTED_HARNESS_HEAD = UPSTREAM_PAIR["harness_ref"]
+EXPECTED_TUI_HEAD = UPSTREAM_PAIR["tui_ref"]
 DELETE_TRACE = LOG / "switch-deletions.jsonl"
 DELETE_OBSERVER = Path(__file__).with_name("observe-session-delete.cjs").resolve()
 ROWS, COLS = 42, 120
@@ -360,7 +364,8 @@ def validate_sources(report: Report) -> None:
     harness_pkg = json.loads((Path(HARNESS) / "apps/cli/package.json").read_text())
     tui_pkg = json.loads((Path(TUI_ROOT) / "package.json").read_text())
     report.add("source-versions",
-               harness_pkg.get("version") == "0.2.1-rc.5" and tui_pkg.get("version") == "0.18.0",
+               harness_pkg.get("version") == UPSTREAM_PAIR["harness_version"]
+               and tui_pkg.get("version") == UPSTREAM_PAIR["tui_version"],
                f"harness {harness_pkg.get('version')} tui {tui_pkg.get('version')}")
     report.add("host-checkout", Path(BIN).resolve() == (Path(HARNESS) / "apps/cli/lib/bin.js").resolve(), BIN)
 

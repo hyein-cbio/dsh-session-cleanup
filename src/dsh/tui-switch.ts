@@ -71,48 +71,21 @@ function nixSwitchScene(props: NixSceneProps): unknown {
   return null;
 }
 
-interface TuiSwitchHostContext extends DshHostContext {
-  effect?(fn: () => () => void): void;
-  inject?(deps: string[], callback: (sub: TuiScenesHost) => void): unknown;
-}
-
-interface TuiScenesHost {
-  tuiScenes?: TuiScenesLike;
-  get?(name: string): unknown;
-}
-
-export function registerNixSwitchScene(ctx: TuiSwitchHostContext): () => void {
-  const disposers: Array<() => void> = [];
-
-  const tryRegister = (scenes: TuiScenesLike | undefined, identity?: unknown): void => {
-    if (!scenes || typeof scenes.register !== "function") {
-      return;
-    }
-    const dispose = scenes.register({
-      id: NIX_SWITCH_SCENE_ID,
-      title: "nix",
-      component: nixSwitchScene,
-    }, identity);
-    if (typeof dispose === "function") {
-      disposers.push(dispose);
-    }
-  };
-
-  const existing = optionalService<TuiScenesLike>(ctx, "tuiScenes");
-  if (existing) {
-    tryRegister(existing, ctx);
-  } else if (typeof ctx.inject === "function") {
-    ctx.inject(["tuiScenes"], (sub) => {
-      const scenes = sub.tuiScenes ?? (typeof sub.get === "function" ? sub.get("tuiScenes") as TuiScenesLike : undefined);
-      tryRegister(scenes, sub);
-    });
-  }
+export function registerNixSwitchScene(ctx: DshHostContext): () => void {
+  // plugin.inject guarantees readiness. Never register in a ctx.inject child:
+  // the TUI only lets the owning activation open its scene.
+  const scenes = optionalService<TuiScenesLike>(ctx, "tuiScenes");
+  const dispose = scenes && typeof scenes.register === "function"
+    ? scenes.register({
+        id: NIX_SWITCH_SCENE_ID,
+        title: "nix",
+        component: nixSwitchScene,
+      }, ctx)
+    : undefined;
 
   return () => {
     pendingJob = undefined;
-    for (const dispose of disposers) {
-      dispose();
-    }
+    dispose?.();
   };
 }
 
@@ -191,7 +164,7 @@ export async function switchToNewSession(
       resolve({
         ok: false,
         previousSessionId: "",
-        error: "dsh-tui has no nix switch scene registered.",
+        error: "dsh-tui could not open the nix switch scene (missing or owned by another activation).",
       });
     }
   });

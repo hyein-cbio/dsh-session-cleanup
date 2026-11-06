@@ -4,7 +4,9 @@ import { handleDshNixCommand } from "./nix-command.js";
 import { registerNixCommandTree, registerNixSwitchScene } from "./tui-switch.js";
 
 export const name = "dsh-session-cleanup";
-export const inject = ["commands"];
+// Wait for the TUI before activation: scene registration and command execution
+// must share one Cordis owner, including when the TUI starts after this plugin.
+export const inject = ["commands", "tuiScenes"];
 
 interface CommandsService {
   register(definition: {
@@ -22,7 +24,6 @@ interface CommandsService {
 export function apply(ctx: DshHostContext & {
   commands?: CommandsService;
   effect?(fn: () => () => void): void;
-  inject?(deps: string[], callback: (sub: unknown) => void): void;
 }): void {
   const commands = ctx.commands ?? (ctx.get("commands") as CommandsService | undefined);
   if (!commands || typeof commands.register !== "function") {
@@ -41,7 +42,7 @@ export function apply(ctx: DshHostContext & {
           signal: invocation.signal,
         }),
     }),
-    registerNixSwitchScene(ctx as Parameters<typeof registerNixSwitchScene>[0]),
+    registerNixSwitchScene(ctx),
     registerNixCommandTree(ctx),
   ];
 

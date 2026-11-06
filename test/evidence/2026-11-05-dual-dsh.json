@@ -1,0 +1,576 @@
+{
+  "recorded_utc": "2026-11-05",
+  "platform": "macOS 27.2 (26B123), ARM64; Python 3.15.2",
+  "normalization": "Sandbox/toolchain paths replaced with placeholders; hostname omitted. Assertions, UUIDs, counts and deletion events are unchanged.",
+  "baseline_runtime": "origin/main 9837e1fe225f56c079920663fd1316d58672dbcd; also unchanged on compat/dsh-022-rc1-20261105",
+  "tested_runtime_sha256": {
+    "lib/src/dsh/plugin.js": "9582ac9fc3078fe10a02119a5b4a35d8358bcdf00a1ef65da2c2f770a7b121b9",
+    "lib/src/dsh/tui-switch.js": "7c7f471c9f4ae142f467cda8a4aa66f12277b2bf39a2d3e9a945f37c4ffe76d0"
+  },
+  "installed_lib_files_match_checkout": true,
+  "limits": [
+    "Local macOS evidence, not a new hosted Linux/macOS CI run.",
+    "Candidate TUI is PR #1886 head fb0b5325, not the released v0.18.0 commit.",
+    "No model calls or user-profile modification.",
+    "Failed baseline stops early; later assertions were not executed despite its driver's skipped=0 counter."
+  ],
+  "cases": {
+    "before_candidate_022": {
+      "stage": "before",
+      "report": {
+        "passed": 23,
+        "failed": 1,
+        "skipped": 0,
+        "notes": [],
+        "provenance": {
+          "harnessHead": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+          "tuiHead": "fb0b5325be7704fbdd09a7d7d8d642fca4d42f77",
+          "node": "v24.22.1",
+          "uname": "Darwin 27.2.0 arm64 (hostname omitted)",
+          "hostNode": "${NODE24_ROOT}/bin/node"
+        },
+        "assertions": [
+          {
+            "name": "source-roots",
+            "ok": true,
+            "detail": "DSH_COMPAT_HARNESS_ROOT and DSH_COMPAT_TUI_ROOT are required"
+          },
+          {
+            "name": "harness-commit",
+            "ok": true,
+            "detail": "expected=66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db actual=66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db"
+          },
+          {
+            "name": "tui-commit",
+            "ok": true,
+            "detail": "expected=fb0b5325be7704fbdd09a7d7d8d642fca4d42f77 actual=fb0b5325be7704fbdd09a7d7d8d642fca4d42f77"
+          },
+          {
+            "name": "source-versions",
+            "ok": true,
+            "detail": "harness 0.2.2-rc.1 tui 0.18.0"
+          },
+          {
+            "name": "host-checkout",
+            "ok": true,
+            "detail": "${TEST_ROOT}/harness-new/apps/cli/lib/bin.js"
+          },
+          {
+            "name": "profile-file-deps",
+            "ok": true,
+            "detail": "{\"@deepseek-harness-tui/dsh-tui\": \"file:${TEST_ROOT}/baseline-new-home/tarballs/tui/deepseek-harness-tui-dsh-tui-0.18.0.tgz\", \"dsh-session-cleanup\": \"file:${TEST_ROOT}/baseline-new-home/tarballs/dsh-session-cleanup-0.2.2.tgz\"}"
+          },
+          {
+            "name": "installed-versions",
+            "ok": true,
+            "detail": "plugin expected=dsh-session-cleanup@0.2.2 actual=dsh-session-cleanup@0.2.2; tui expected=@deepseek-harness-tui/dsh-tui@0.18.0 actual=@deepseek-harness-tui/dsh-tui@0.18.0"
+          },
+          {
+            "name": "initialize-workspace",
+            "ok": true,
+            "detail": "exit=0"
+          },
+          {
+            "name": "boot",
+            "ok": true,
+            "detail": "chat composer ready"
+          },
+          {
+            "name": "host-cmdline",
+            "ok": true,
+            "detail": "${NODE24_ROOT}/bin/node ${TEST_ROOT}/harness-new/apps/cli/lib/bin.js --profile dsh-tui"
+          },
+          {
+            "name": "help",
+            "ok": true,
+            "detail": "Usage: /nix rendered"
+          },
+          {
+            "name": "confirm-dialog",
+            "ok": true,
+            "detail": "confirmation open"
+          },
+          {
+            "name": "cancel",
+            "ok": true,
+            "detail": "ids kept ['fdd570e3-d56f-4282-9a92-9740b516a8ad']"
+          },
+          {
+            "name": "rename-control",
+            "ok": true,
+            "detail": "fdd570e3-d56f-4282-9a92-9740b516a8ad"
+          },
+          {
+            "name": "flock-addon",
+            "ok": true,
+            "detail": "[\"${TEST_ROOT}/harness-new/native/system/packages/darwin-arm64/bin/system.node\"]"
+          },
+          {
+            "name": "new",
+            "ok": true,
+            "detail": "doomed=03ccf064-e950-4120-88c8-de3e31c4a6d3 control=fdd570e3-d56f-4282-9a92-9740b516a8ad"
+          },
+          {
+            "name": "rename-doomed",
+            "ok": true,
+            "detail": "${TEST_ROOT}/baseline-new-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-baseline-new-home-.dsh-profiles-dsh-tui--/03ccf064-e950-4120-88c8-de3e31c4a6d3"
+          },
+          {
+            "name": "exit-setup",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "control-stable-before-resume",
+            "ok": true,
+            "detail": "2de7b4418081"
+          },
+          {
+            "name": "switch-targets",
+            "ok": true,
+            "detail": "doomed session directory exists before resume"
+          },
+          {
+            "name": "resume",
+            "ok": true,
+            "detail": "resumed 03ccf064-e950-4120-88c8-de3e31c4a6d3 pins=['03ccf064-e950-4120-88c8-de3e31c4a6d3', 'fdd570e3-d56f-4282-9a92-9740b516a8ad']"
+          },
+          {
+            "name": "switch-dialog",
+            "ok": true,
+            "detail": "confirmation open for doomed session"
+          },
+          {
+            "name": "switch-proj-before",
+            "ok": true,
+            "detail": "projection cache must exist for 03ccf064-e950-4120-88c8-de3e31c4a6d3"
+          },
+          {
+            "name": "switch",
+            "ok": false,
+            "detail": "deletion summary missing"
+          }
+        ]
+      },
+      "screen_error": "dsh-tui has no nix switch scene registered."
+    },
+    "after_candidate_022": {
+      "stage": "after",
+      "report": {
+        "passed": 33,
+        "failed": 0,
+        "skipped": 0,
+        "notes": [
+          "The live TUI exposed the switch scene, so confirmed /nix adopted a new session before deleting the old one. The refuse-without-delete branch applies only when that scene is missing. This run did not disable it. Unit test \"DSH /nix does not delete when the TUI refuses to switch\" covers that branch with a stubbed switch result."
+        ],
+        "provenance": {
+          "harnessHead": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+          "tuiHead": "fb0b5325be7704fbdd09a7d7d8d642fca4d42f77",
+          "node": "v24.22.1",
+          "uname": "Darwin 27.2.0 arm64 (hostname omitted)",
+          "hostNode": "${NODE24_ROOT}/bin/node"
+        },
+        "assertions": [
+          {
+            "name": "source-roots",
+            "ok": true,
+            "detail": "DSH_COMPAT_HARNESS_ROOT and DSH_COMPAT_TUI_ROOT are required"
+          },
+          {
+            "name": "harness-commit",
+            "ok": true,
+            "detail": "expected=66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db actual=66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db"
+          },
+          {
+            "name": "tui-commit",
+            "ok": true,
+            "detail": "expected=fb0b5325be7704fbdd09a7d7d8d642fca4d42f77 actual=fb0b5325be7704fbdd09a7d7d8d642fca4d42f77"
+          },
+          {
+            "name": "source-versions",
+            "ok": true,
+            "detail": "harness 0.2.2-rc.1 tui 0.18.0"
+          },
+          {
+            "name": "host-checkout",
+            "ok": true,
+            "detail": "${TEST_ROOT}/harness-new/apps/cli/lib/bin.js"
+          },
+          {
+            "name": "profile-file-deps",
+            "ok": true,
+            "detail": "{\"@deepseek-harness-tui/dsh-tui\": \"file:${TEST_ROOT}/baseline-new-home/tarballs/tui/deepseek-harness-tui-dsh-tui-0.18.0.tgz\", \"dsh-session-cleanup\": \"file:${TEST_ROOT}/final-new-canonical-home/tarballs/dsh-session-cleanup-0.2.2.tgz\"}"
+          },
+          {
+            "name": "installed-versions",
+            "ok": true,
+            "detail": "plugin expected=dsh-session-cleanup@0.2.2 actual=dsh-session-cleanup@0.2.2; tui expected=@deepseek-harness-tui/dsh-tui@0.18.0 actual=@deepseek-harness-tui/dsh-tui@0.18.0"
+          },
+          {
+            "name": "initialize-workspace",
+            "ok": true,
+            "detail": "exit=0"
+          },
+          {
+            "name": "boot",
+            "ok": true,
+            "detail": "chat composer ready"
+          },
+          {
+            "name": "host-cmdline",
+            "ok": true,
+            "detail": "${NODE24_ROOT}/bin/node ${TEST_ROOT}/harness-new/apps/cli/lib/bin.js --profile dsh-tui"
+          },
+          {
+            "name": "help",
+            "ok": true,
+            "detail": "Usage: /nix rendered"
+          },
+          {
+            "name": "confirm-dialog",
+            "ok": true,
+            "detail": "confirmation open"
+          },
+          {
+            "name": "cancel",
+            "ok": true,
+            "detail": "ids kept ['63d5547e-eb15-4281-be0c-b9e58984457e']"
+          },
+          {
+            "name": "rename-control",
+            "ok": true,
+            "detail": "63d5547e-eb15-4281-be0c-b9e58984457e"
+          },
+          {
+            "name": "flock-addon",
+            "ok": true,
+            "detail": "[\"${TEST_ROOT}/harness-new/native/system/packages/darwin-arm64/bin/system.node\"]"
+          },
+          {
+            "name": "new",
+            "ok": true,
+            "detail": "doomed=1a01860d-efd4-4320-a257-f55a446b3117 control=63d5547e-eb15-4281-be0c-b9e58984457e"
+          },
+          {
+            "name": "rename-doomed",
+            "ok": true,
+            "detail": "${TEST_ROOT}/final-new-canonical-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-new-canonical-home-.dsh-profiles-dsh-tui--/1a01860d-efd4-4320-a257-f55a446b3117"
+          },
+          {
+            "name": "exit-setup",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "control-stable-before-resume",
+            "ok": true,
+            "detail": "8b486f9ed83b"
+          },
+          {
+            "name": "switch-targets",
+            "ok": true,
+            "detail": "doomed session directory exists before resume"
+          },
+          {
+            "name": "resume",
+            "ok": true,
+            "detail": "resumed 1a01860d-efd4-4320-a257-f55a446b3117 pins=['1a01860d-efd4-4320-a257-f55a446b3117', '63d5547e-eb15-4281-be0c-b9e58984457e']"
+          },
+          {
+            "name": "switch-dialog",
+            "ok": true,
+            "detail": "confirmation open for doomed session"
+          },
+          {
+            "name": "switch-proj-before",
+            "ok": true,
+            "detail": "projection cache must exist for 1a01860d-efd4-4320-a257-f55a446b3117"
+          },
+          {
+            "name": "switch-order",
+            "ok": true,
+            "detail": "[{\"event\": \"before-delete\", \"target\": \"${TEST_ROOT}/final-new-canonical-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-new-canonical-home-.dsh-profiles-dsh-tui--/1a01860d-efd4-4320-a257-f55a446b3117\", \"operation\": \"trash\", \"exists\": true, \"ids\": [\"c93c080f-df2e-433f-91d6-6a97bae99408\", \"1a01860d-efd4-4320-a257-f55a446b3117\", \"63d5547e-eb15-4281-be0c-b9e58984457e\"]}, {\"event\": \"after-delete\", \"target\": \"${TEST_ROOT}/final-new-canonical-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-new-canonical-home-.dsh-profiles-dsh-tui--/1a01860d-efd4-4320-a257-f55a446b3117\", \"operation\": \"trash\", \"exists\": false, \"ids\": [\"c93c080f-df2e-433f-91d6-6a97bae99408\", \"1a01860d-efd4-4320-a257-f55a446b3117\", \"63d5547e-eb15-4281-be0c-b9e58984457e\"]}]"
+          },
+          {
+            "name": "switch-trash",
+            "ok": true,
+            "detail": "macOS used Trash operations, not permanent removal"
+          },
+          {
+            "name": "switch-proj",
+            "ok": true,
+            "detail": "doomed projection cache removed"
+          },
+          {
+            "name": "switch",
+            "ok": true,
+            "detail": "adopted=c93c080f-df2e-433f-91d6-6a97bae99408 doomed removed control kept"
+          },
+          {
+            "name": "usable",
+            "ok": true,
+            "detail": "adopted session accepted /nix help"
+          },
+          {
+            "name": "quit-dialog",
+            "ok": true,
+            "detail": "quit confirmation open"
+          },
+          {
+            "name": "quit",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "quit-cleanup",
+            "ok": true,
+            "detail": "adopted removed, control remains, deleted ids not recreated"
+          },
+          {
+            "name": "restart",
+            "ok": true,
+            "detail": "deleted ids stay gone; control 63d5547e-eb15-4281-be0c-b9e58984457e remains"
+          },
+          {
+            "name": "restart-exit",
+            "ok": true,
+            "detail": "exit=0"
+          }
+        ]
+      },
+      "deletion_events": [
+        {
+          "event": "before-delete",
+          "target": "${TEST_ROOT}/final-new-canonical-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-new-canonical-home-.dsh-profiles-dsh-tui--/1a01860d-efd4-4320-a257-f55a446b3117",
+          "operation": "trash",
+          "exists": true,
+          "ids": [
+            "c93c080f-df2e-433f-91d6-6a97bae99408",
+            "1a01860d-efd4-4320-a257-f55a446b3117",
+            "63d5547e-eb15-4281-be0c-b9e58984457e"
+          ]
+        },
+        {
+          "event": "after-delete",
+          "target": "${TEST_ROOT}/final-new-canonical-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-new-canonical-home-.dsh-profiles-dsh-tui--/1a01860d-efd4-4320-a257-f55a446b3117",
+          "operation": "trash",
+          "exists": false,
+          "ids": [
+            "c93c080f-df2e-433f-91d6-6a97bae99408",
+            "1a01860d-efd4-4320-a257-f55a446b3117",
+            "63d5547e-eb15-4281-be0c-b9e58984457e"
+          ]
+        }
+      ]
+    },
+    "after_validated": {
+      "stage": "after",
+      "report": {
+        "passed": 33,
+        "failed": 0,
+        "skipped": 0,
+        "notes": [
+          "The live TUI exposed the switch scene, so confirmed /nix adopted a new session before deleting the old one. The refuse-without-delete branch applies only when that scene is missing. This run did not disable it. Unit test \"DSH /nix does not delete when the TUI refuses to switch\" covers that branch with a stubbed switch result."
+        ],
+        "provenance": {
+          "harnessHead": "b830ec950faba0a46dda564be3e2d854afed94f1",
+          "tuiHead": "1d0d946f459da5149aba64cc6cc0ef7da304053c",
+          "node": "v22.23.4",
+          "uname": "Darwin 27.2.0 arm64 (hostname omitted)",
+          "hostNode": "${TEST_ROOT}/node22/bin/node"
+        },
+        "assertions": [
+          {
+            "name": "source-roots",
+            "ok": true,
+            "detail": "DSH_COMPAT_HARNESS_ROOT and DSH_COMPAT_TUI_ROOT are required"
+          },
+          {
+            "name": "harness-commit",
+            "ok": true,
+            "detail": "expected=b830ec950faba0a46dda564be3e2d854afed94f1 actual=b830ec950faba0a46dda564be3e2d854afed94f1"
+          },
+          {
+            "name": "tui-commit",
+            "ok": true,
+            "detail": "expected=1d0d946f459da5149aba64cc6cc0ef7da304053c actual=1d0d946f459da5149aba64cc6cc0ef7da304053c"
+          },
+          {
+            "name": "source-versions",
+            "ok": true,
+            "detail": "harness 0.2.1-rc.5 tui 0.18.0"
+          },
+          {
+            "name": "host-checkout",
+            "ok": true,
+            "detail": "${TEST_ROOT}/harness-old/apps/cli/lib/bin.js"
+          },
+          {
+            "name": "profile-file-deps",
+            "ok": true,
+            "detail": "{\"@deepseek-harness-tui/dsh-tui\": \"file:${TEST_ROOT}/final-old-home/tarballs/tui/deepseek-harness-tui-dsh-tui-0.18.0.tgz\", \"dsh-session-cleanup\": \"file:${TEST_ROOT}/final-old-home/tarballs/dsh-session-cleanup-0.2.2.tgz\"}"
+          },
+          {
+            "name": "installed-versions",
+            "ok": true,
+            "detail": "plugin expected=dsh-session-cleanup@0.2.2 actual=dsh-session-cleanup@0.2.2; tui expected=@deepseek-harness-tui/dsh-tui@0.18.0 actual=@deepseek-harness-tui/dsh-tui@0.18.0"
+          },
+          {
+            "name": "initialize-workspace",
+            "ok": true,
+            "detail": "exit=0"
+          },
+          {
+            "name": "boot",
+            "ok": true,
+            "detail": "chat composer ready"
+          },
+          {
+            "name": "host-cmdline",
+            "ok": true,
+            "detail": "${TEST_ROOT}/node22/bin/node ${TEST_ROOT}/harness-old/apps/cli/lib/bin.js --profile dsh-tui"
+          },
+          {
+            "name": "help",
+            "ok": true,
+            "detail": "Usage: /nix rendered"
+          },
+          {
+            "name": "confirm-dialog",
+            "ok": true,
+            "detail": "confirmation open"
+          },
+          {
+            "name": "cancel",
+            "ok": true,
+            "detail": "ids kept ['d2c1cd0d-001e-4521-8c6a-02f5477c8d29']"
+          },
+          {
+            "name": "rename-control",
+            "ok": true,
+            "detail": "d2c1cd0d-001e-4521-8c6a-02f5477c8d29"
+          },
+          {
+            "name": "flock-addon",
+            "ok": true,
+            "detail": "[\"${TEST_ROOT}/harness-old/native/system/packages/darwin-arm64/bin/system.node\"]"
+          },
+          {
+            "name": "new",
+            "ok": true,
+            "detail": "doomed=99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14 control=d2c1cd0d-001e-4521-8c6a-02f5477c8d29"
+          },
+          {
+            "name": "rename-doomed",
+            "ok": true,
+            "detail": "${TEST_ROOT}/final-old-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-old-home-.dsh-profiles-dsh-tui--/99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14"
+          },
+          {
+            "name": "exit-setup",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "control-stable-before-resume",
+            "ok": true,
+            "detail": "63ac64930927"
+          },
+          {
+            "name": "switch-targets",
+            "ok": true,
+            "detail": "doomed session directory exists before resume"
+          },
+          {
+            "name": "resume",
+            "ok": true,
+            "detail": "resumed 99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14 pins=['99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14', 'd2c1cd0d-001e-4521-8c6a-02f5477c8d29']"
+          },
+          {
+            "name": "switch-dialog",
+            "ok": true,
+            "detail": "confirmation open for doomed session"
+          },
+          {
+            "name": "switch-proj-before",
+            "ok": true,
+            "detail": "projection cache must exist for 99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14"
+          },
+          {
+            "name": "switch-order",
+            "ok": true,
+            "detail": "[{\"event\": \"before-delete\", \"target\": \"${TEST_ROOT}/final-old-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-old-home-.dsh-profiles-dsh-tui--/99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14\", \"operation\": \"trash\", \"exists\": true, \"ids\": [\"dbab96ff-c85e-4075-acfb-e0218073dcbf\", \"99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14\", \"d2c1cd0d-001e-4521-8c6a-02f5477c8d29\"]}, {\"event\": \"after-delete\", \"target\": \"${TEST_ROOT}/final-old-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-old-home-.dsh-profiles-dsh-tui--/99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14\", \"operation\": \"trash\", \"exists\": false, \"ids\": [\"dbab96ff-c85e-4075-acfb-e0218073dcbf\", \"99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14\", \"d2c1cd0d-001e-4521-8c6a-02f5477c8d29\"]}]"
+          },
+          {
+            "name": "switch-trash",
+            "ok": true,
+            "detail": "macOS used Trash operations, not permanent removal"
+          },
+          {
+            "name": "switch-proj",
+            "ok": true,
+            "detail": "doomed projection cache removed"
+          },
+          {
+            "name": "switch",
+            "ok": true,
+            "detail": "adopted=dbab96ff-c85e-4075-acfb-e0218073dcbf doomed removed control kept"
+          },
+          {
+            "name": "usable",
+            "ok": true,
+            "detail": "adopted session accepted /nix help"
+          },
+          {
+            "name": "quit-dialog",
+            "ok": true,
+            "detail": "quit confirmation open"
+          },
+          {
+            "name": "quit",
+            "ok": true,
+            "detail": "exit 0"
+          },
+          {
+            "name": "quit-cleanup",
+            "ok": true,
+            "detail": "adopted removed, control remains, deleted ids not recreated"
+          },
+          {
+            "name": "restart",
+            "ok": true,
+            "detail": "deleted ids stay gone; control d2c1cd0d-001e-4521-8c6a-02f5477c8d29 remains"
+          },
+          {
+            "name": "restart-exit",
+            "ok": true,
+            "detail": "exit=0"
+          }
+        ]
+      },
+      "deletion_events": [
+        {
+          "event": "before-delete",
+          "target": "${TEST_ROOT}/final-old-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-old-home-.dsh-profiles-dsh-tui--/99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14",
+          "operation": "trash",
+          "exists": true,
+          "ids": [
+            "dbab96ff-c85e-4075-acfb-e0218073dcbf",
+            "99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14",
+            "d2c1cd0d-001e-4521-8c6a-02f5477c8d29"
+          ]
+        },
+        {
+          "event": "after-delete",
+          "target": "${TEST_ROOT}/final-old-home/.dsh/sessions/--private-tmp-dsh-dual-20261105-final-old-home-.dsh-profiles-dsh-tui--/99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14",
+          "operation": "trash",
+          "exists": false,
+          "ids": [
+            "dbab96ff-c85e-4075-acfb-e0218073dcbf",
+            "99624c4a-6f69-49f5-a3e2-f2cc9a2f9e14",
+            "d2c1cd0d-001e-4521-8c6a-02f5477c8d29"
+          ]
+        }
+      ]
+    }
+  }
+}
