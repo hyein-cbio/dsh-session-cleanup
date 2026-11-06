@@ -4,6 +4,19 @@ This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x86_64 permanent deletion for the pinned upstream pair. Earlier local and Linux-only results remain separate historical records.
 
+## Version 0.3.1 release verification (2026-11-06)
+
+[CI run 42270528944](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42270528944), runtime commit `4c1ccd873e3672490078b57f016f8e8fc06a2999`, package version `0.3.1`, completed successfully with **all eight jobs passing** on the first attempt. Release preparation updates documentation only; no runtime, dependency, test-driver or workflow changes follow that verified commit.
+
+| CI check | Result |
+| --- | --- |
+| Ubuntu package checks, Node `22.23.4` and `24.22.1` | each: 73 TypeScript + 41 Python tests passed |
+| Self-hosted macOS ARM64 package checks, same Node versions | each: 73 TypeScript + 41 Python tests passed |
+| Ubuntu PTY, `validated` and `merged-022` | each: **32/32**, no failures/skips |
+| Self-hosted macOS ARM64 PTY, `validated` and `merged-022` | each: **33/33**, no failures/skips |
+
+The four uploaded `upstream-compat-<pair>-<os>-1` artifacts contain `live-full.json` and real deletion traces. These verify adoption before deletion, macOS Trash, projection/workspace/pin cleanup, preservation of the control session, `/nix quit`, and restart without recreating deleted ids. Both upstream pair identities remain pinned in `scripts/upstream_pairs.py`; the published TUI `v0.19.0` opt-in cell was not rerun. The initial closed-writer regression and the self-hosted setup failures below are historical failures, not the final release result.
+
 ## CI runner routing and fork policy
 
 Both CI jobs route matrix `macOS` to `[self-hosted, macOS]`, and `ubuntu-24.04` to the GitHub-hosted Ubuntu runner. Job-level guards allow only this repository's push/manual events and PRs whose head repository is this repository. Fork PRs and copies of this workflow in other repositories skip both jobs before runner allocation.
@@ -14,7 +27,7 @@ Python setup differs by runner environment: GitHub-hosted runners use `actions/s
 
 These YAML guards are not a security boundary against a PR that edits its own workflow. Before relying on a self-hosted runner in this public repository, set **Settings → Actions → General → Fork pull request workflows from outside collaborators → Require approval for all outside collaborators** (`all_external_contributors`). Review workflow changes and code before approving; approval can authorize malicious code even if the normal fork guard would have skipped it. Read-only tokens do not isolate the runner's files, credentials or network. Dedicated/isolated runners are still recommended. The workflow change does not itself update GitHub repository settings.
 
-## Post-0.3.0 closed-writer fix (2026-11-06, unreleased)
+## Closed-writer regression reproduction (before 0.3.1 release)
 
 Hosted run [42262514184](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42262514184) failed both Ubuntu live cells at `switch: deletion summary missing`. The captured terminal showed a successful new-session adoption followed by a failure flushing the previous session. A local reproduction against the exact `validated` sources exposed `SessionHandleClosedError`: the previous write handle was closing while its live session was still registered.
 

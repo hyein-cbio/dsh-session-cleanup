@@ -1,14 +1,12 @@
 # Changelog
 
-Current DSH release is **0.3.0**
-([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.0) ·
-[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.3.0)).
+Current DSH release is **0.3.1**
+([GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.1) ·
+[npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.3.1)).
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
-## 0.3.1 — Unreleased
-
-Patch version prepared for CI only. No tag, GitHub Release or npm publication.
+## [0.3.1] - 2026-11-06
 
 ### CI
 - Install pnpm under the job temporary directory instead of reusing `~/setup-pnpm` across matrix cells.
@@ -21,7 +19,7 @@ Patch version prepared for CI only. No tag, GitHub Release or npm publication.
 - Hash only published JSONL logs in the live PTY driver; exclude atomic-publication temporary files that can disappear while being read.
 
 ### Testing
-- Node `22.23.4` and `24.22.1`: 73 TypeScript and 41 Python tests passed. Local macOS ARM64 real PTY runs passed 33/33 for each exact CI pin (`validated`, `merged-022`), including Trash, control preservation, quit and restart. This is not a new hosted Linux pass or a published release; see [TESTING.md](TESTING.md).
+- [CI run 42270528944](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42270528944) passed all eight jobs on runtime commit `4c1ccd8`. Node `22.23.4` and `24.22.1`: 73 TypeScript and 41 Python tests passed on Ubuntu and self-hosted macOS. Real PTY checks passed 32/32 on Ubuntu and 33/33 on macOS for each exact CI pin (`validated`, `merged-022`), with zero failures/skips, including Trash, control preservation, quit and restart. Release preparation changes documentation only; see [TESTING.md](TESTING.md).
 
 ## [0.3.0] - 2026-11-06
 
@@ -162,6 +160,7 @@ These entries shipped on the original Pi package before the DSH port. They are k
 - Upgraded custom picker UI with bordered modal layout, title/status/help lines, and responsive overlay sizing
 - Added production-ready package metadata and README
 
+[0.3.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.1
 [0.3.0]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.0
 [0.2.2]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.2
 [0.2.1]: https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.2.1
