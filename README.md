@@ -11,7 +11,7 @@ Inspired by [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup).
 
 </div>
 
-Latest plugin release is **0.3.0** on [npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.3.0) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.0). See [CHANGELOG.md](CHANGELOG.md).
+Latest published plugin release is **0.3.0** on [npm](https://www.npmjs.com/package/dsh-session-cleanup/v/0.3.0) and [GitHub](https://github.com/hyein-cbio/dsh-session-cleanup/releases/tag/v0.3.0). The working version is **0.3.1**, unreleased and awaiting CI; it fixes the closed-writer cleanup regression. See [CHANGELOG.md](CHANGELOG.md).
 
 ## What this is
 

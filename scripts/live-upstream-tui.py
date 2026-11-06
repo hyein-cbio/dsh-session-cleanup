@@ -281,7 +281,10 @@ def log_files(sid: str) -> list[Path]:
         if not directory.is_dir():
             continue
         for child in directory.iterdir():
-            if child.is_file() and "jsonl" in child.name:
+            # The backend atomically publishes from *.jsonl.zstd.<nonce>.tmp.
+            # Those transient files can vanish between listing and hashing and
+            # are not the durable log whose preservation this check proves.
+            if child.is_file() and child.name.endswith((".jsonl", ".jsonl.zstd")):
                 files.append(child)
     return files
 

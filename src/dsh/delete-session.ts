@@ -38,6 +38,10 @@ interface SessionsServiceLike {
   attachments?: { delete(session: unknown): void };
 }
 
+interface SessionPersistenceLike {
+  flush(): Promise<void> | void;
+}
+
 interface AgentLike {
   cancel?(cause: unknown): void;
   whenIdle?(): Promise<void>;
@@ -174,7 +178,24 @@ async function flushSessionIfLive(ctx: DshHostContext, sessionId: string): Promi
       await sessions.flush(session);
       flushed = true;
     } catch (error) {
-      throw new DshDeleteError(`could not flush session ${sessionId}: ${getErrorMessage(error)}`, 500);
+      // Adoption may close the old writer before its live session leaves the
+      // registry. Harness's backend barrier drains routed events and explicitly
+      // handles writers closed during that sweep. Do not mistake this lifecycle
+      // race for an I/O failure, or skip the durability barrier altogether.
+      const persistence = error instanceof Error
+        && error.name === "SessionHandleClosedError"
+        && "sessionId" in error && error.sessionId === variant
+        ? optionalService<SessionPersistenceLike>(ctx, "sessionPersistence")
+        : undefined;
+      if (!persistence || typeof persistence.flush !== "function") {
+        throw new DshDeleteError(`could not flush session ${sessionId}: ${getErrorMessage(error)}`, 500);
+      }
+      try {
+        await persistence.flush();
+        flushed = true;
+      } catch (barrierError) {
+        throw new DshDeleteError(`could not flush session ${sessionId}: ${getErrorMessage(barrierError)}`, 500);
+      }
     }
   }
   return flushed;

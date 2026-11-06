@@ -80,6 +80,73 @@ test("detach and metadata cleanup happen only after confirmed removal", async ()
   } finally { f.close(); }
 });
 
+function closedHandleError(sessionId = id): Error {
+  // Stable public error identity from @deepseek-ai/dsh-session-persistence;
+  // the plugin deliberately has no runtime dependency on the host package.
+  return Object.assign(new Error(`session "${sessionId}": flush on a closed handle`), {
+    name: "SessionHandleClosedError", sessionId,
+  });
+}
+
+test("a closing old writer must pass the backend durability barrier before removal", async () => {
+  const f = fixture();
+  const baseGet = f.ctx.get;
+  let release!: () => void;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
+  let barrierCalls = 0;
+  let removed = false;
+  f.ctx.get = name => name === "sessionPersistence" ? { flush: async () => {
+    barrierCalls++;
+    await barrier;
+  } } : baseGet(name);
+  f.sessions.flush = async () => { throw closedHandleError(); };
+  try {
+    const deleting = deleteDshSession(f.ctx, id, { removePath: async target => {
+      removed = true;
+      rmSync(target, { recursive: true });
+      return { ok: true };
+    } });
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(barrierCalls, 1);
+    assert.equal(removed, false);
+    assert.deepEqual(f.state(), { attached: true, cache: true, membership: [id], pins: [id] });
+    release();
+    const result = await deleting;
+    assert.equal(result.flushed, true);
+    assert.equal(result.dirRemoved, true);
+    assert.deepEqual(f.state(), { attached: false, cache: false, membership: [], pins: [] });
+  } finally { release(); f.close(); }
+});
+
+test("closed-writer recovery is narrow and backend failures still refuse deletion", async () => {
+  for (const mode of ["absent", "no-flush", "barrier-failure", "other-id", "io-failure", "aggregate"] as const) {
+    const f = fixture();
+    const baseGet = f.ctx.get;
+    let barrierCalls = 0;
+    f.ctx.get = name => name === "sessionPersistence"
+      ? mode === "absent" ? undefined : mode === "no-flush" ? {} : { flush: async () => {
+        barrierCalls++;
+        if (mode === "barrier-failure") throw new Error("durability barrier failed");
+      } }
+      : baseGet(name);
+    f.sessions.flush = async () => {
+      if (mode === "io-failure") throw new Error("disk full");
+      if (mode === "aggregate") throw new AggregateError([closedHandleError(), new Error("disk full")]);
+      throw closedHandleError(mode === "other-id" ? "another-session" : id);
+    };
+    try {
+      await assert.rejects(deleteDshSession(f.ctx, id, {
+        removePath: async () => { assert.fail("must not delete without a successful durability barrier"); },
+      }), error => error instanceof DshDeleteError && error.status === 500
+        && /could not flush session/.test(error.message)
+        && (mode !== "barrier-failure" || /durability barrier failed/.test(error.message)));
+      assert.equal(barrierCalls, mode === "barrier-failure" ? 1 : 0, mode);
+      assert.deepEqual(f.state(), { attached: true, cache: true, membership: [id], pins: [id] });
+      assert.equal(existsSync(f.dir), true);
+    } finally { f.close(); }
+  }
+});
+
 test("unconfirmed removal cannot be retried by the outer deletion loop", async () => {
   const f = fixture();
   let attempts = 0;

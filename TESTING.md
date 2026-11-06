@@ -4,7 +4,34 @@ This plugin needs both [DeepSeek Harness](https://github.com/deepseek-ai/deepsee
 
 The hosted run recorded below verifies macOS ARM64 Trash operations and Linux x86_64 permanent deletion for the pinned upstream pair. Earlier local and Linux-only results remain separate historical records.
 
-## Version 0.3.0 safety changes
+## CI runner routing and fork policy
+
+Both CI jobs route matrix `macOS` to `[self-hosted, macOS]`, and `ubuntu-24.04` to the GitHub-hosted Ubuntu runner. Job-level guards allow only this repository's push/manual events and PRs whose head repository is this repository. Fork PRs and copies of this workflow in other repositories skip both jobs before runner allocation.
+
+These YAML guards are not a security boundary against a PR that edits its own workflow. Before relying on a self-hosted runner in this public repository, set **Settings → Actions → General → Fork pull request workflows from outside collaborators → Require approval for all outside collaborators** (`all_external_contributors`). Review workflow changes and code before approving; approval can authorize malicious code even if the normal fork guard would have skipped it. Read-only tokens do not isolate the runner's files, credentials or network. Dedicated/isolated runners are still recommended. The workflow change does not itself update GitHub repository settings.
+
+## Post-0.3.0 closed-writer fix (2026-11-06, unreleased)
+
+Hosted run [42262514184](https://github.com/hyein-cbio/dsh-session-cleanup/actions/runs/42262514184) failed both Ubuntu live cells at `switch: deletion summary missing`. The captured terminal showed a successful new-session adoption followed by a failure flushing the previous session. A local reproduction against the exact `validated` sources exposed `SessionHandleClosedError`: the previous write handle was closing while its live session was still registered.
+
+The fix uses `sessionPersistence.flush()` only for that public error identity and the exact target id. Harness's backend barrier drains routed events and accounts for handles closing during the sweep. A normal I/O failure, another session's error, an aggregate failure, or an unavailable/failing backend barrier still refuses deletion; attachment, projection cache, membership and pins remain intact. The live driver also excludes unpublished `*.jsonl.zstd.<nonce>.tmp` files from log hashes after a separate reproduction caught one disappearing between listing and reading.
+
+Local verification before the version-only bump from `0.3.0` to the unreleased `0.3.1` (no release or upload):
+
+| Check | Result |
+| --- | --- |
+| `npm run check`, Node `22.23.4` | 73 TypeScript + 41 Python tests, no failures/skips |
+| `npm run check`, Node `24.22.1` | 73 TypeScript + 41 Python tests, no failures/skips |
+| Local macOS ARM64 PTY, `validated`: Harness `b830ec95`, TUI `1d0d946f`, Node `22.23.4` | **33/33**, no failures/skips |
+| Local macOS ARM64 PTY, `merged-022`: Harness `66491b05`, TUI `e7336a62`, Node `24.22.1` | **33/33**, no failures/skips |
+| Real Cordis/TUI lifecycle, `merged-022` | early/late startup, foreign refusal, reload and disposal passed |
+| Final merged adapter regressions | plugin lifecycle 113 checks; durable-model-selection passed |
+
+Both PTY runs used the working-tree driver without diagnostic monkeypatches, at its normal 120-column width, a freshly packed plugin, separate disposable HOME/DSH_HOME/XDG trees and no model calls. Cached source-built Harness checkouts were reused; the old TUI tarball was reused from its matching source build, and the final-merge TUI was freshly checked out, compiled and packed. Both source pins and installed package identities passed driver preflight. The deletion traces show real macOS Trash operations only after a new id was published, with control logs retained; quit and restart confirm deleted ids stay gone. Full local reports are `/tmp/dsh-ci-fix-20261106/fixed-old-evidence/live-full.json` and `/tmp/dsh-ci-fix-20261106/fixed-merged-evidence/live-full.json` with sibling `switch-deletions.jsonl` files. These temporary paths are local evidence, not hosted artifacts.
+
+**These local reports do not establish a hosted Linux CI pass for `0.3.1`; check the push-triggered CI result separately.** The published TUI `v0.19.0` opt-in cell was not rerun; `merged-022` remains the separate merge commit whose manifest says `0.18.0`. Historical results below do not substitute for those checks.
+
+## Version 0.3.0 safety changes (release-time record)
 
 Version `0.3.0` adds fail-closed deletion, delayed detach/accounting commit, bounded Trash provider termination, switch deadline/cancellation/disposal handling, mandatory confirmation, stable legacy picker labels, and fork-child failure isolation. Historical PTY results below verify earlier runtime artifacts, not these safety changes. A new source-built live PTY pass is still required before extending upstream compatibility claims.
 

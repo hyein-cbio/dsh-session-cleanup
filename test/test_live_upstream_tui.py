@@ -58,6 +58,22 @@ class DriverTests(unittest.TestCase):
         self.addCleanup(self.git.stop)
         self.report = driver.Report()
 
+    def test_log_digest_ignores_transient_publication_files(self):
+        sessions = self.home / "sessions"
+        directory = sessions / "project" / "doomed"
+        directory.mkdir(parents=True)
+        durable = directory / "session.v4.jsonl.zstd"
+        durable.write_bytes(b"durable history")
+        temporary = directory / "session.v4.jsonl.zstd.nonce.tmp"
+        temporary.write_bytes(b"unpublished history")
+        with patch.object(driver, "SESSIONS", sessions):
+            self.assertEqual(driver.log_files("doomed"), [durable])
+            digest = driver.log_digest("doomed")
+            temporary.unlink()
+            self.assertEqual(driver.log_digest("doomed"), digest)
+            durable.write_bytes(b"changed durable history")
+            self.assertNotEqual(driver.log_digest("doomed"), digest)
+
     def assert_preflight_refuses(self, assertion):
         with patch.object(driver, "Tui") as host, patch.object(driver, "set_lists") as mutate:
             with self.assertRaises(SystemExit):

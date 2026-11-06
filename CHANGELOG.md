@@ -6,6 +6,20 @@ Current DSH release is **0.3.0**
 
 Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at the bottom are inherited from [pi-session-cleanup](https://github.com/MasuRii/pi-session-cleanup) and are not DSH releases.
 
+## 0.3.1 — Unreleased
+
+Patch version prepared for CI only. No tag, GitHub Release or npm publication.
+
+### CI
+- Route macOS matrix cells to runners labeled `self-hosted` and `macOS`; retain GitHub-hosted Ubuntu. Skip fork PRs and workflow copies outside the original repository. Require external-contributor approval in repository settings as a separate security control.
+
+### Fixed
+- Recover the specific old-writer `SessionHandleClosedError` after `/nix` adoption through Harness's backend durability barrier. Ordinary flush errors, errors for another session, missing barriers and failed barriers still refuse deletion and retain live attachments/accounting.
+- Hash only published JSONL logs in the live PTY driver; exclude atomic-publication temporary files that can disappear while being read.
+
+### Testing
+- Node `22.23.4` and `24.22.1`: 73 TypeScript and 41 Python tests passed. Local macOS ARM64 real PTY runs passed 33/33 for each exact CI pin (`validated`, `merged-022`), including Trash, control preservation, quit and restart. This is not a new hosted Linux pass or a published release; see [TESTING.md](TESTING.md).
+
 ## [0.3.0] - 2026-11-06
 
 ### Compatibility verification
