@@ -8,6 +8,9 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 
 ## Unreleased
 
+### Compatibility
+- Re-verified on Linux the published pair dsh-TUI `v0.19.0` (`224f847d02c2157f43862d2792cf9d7459222f4c`) and the Harness line that commit names, `0.2.2-rc.1` (`66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`), against plugin `0.3.1`. `UPSTREAM_VALIDATED_VERSION` is `0.2.2-rc.1`. Live `/nix` and `/nix quit` checks passed 32/32. No newer Harness GitHub release was published. `dsh-v0.2.2-alpha.2` and `dsh-v0.2.2-alpha.3` are outside that TUI's supported set and were not tested. macOS Trash was not tested. See [TESTING.md](TESTING.md).
+
 ### CI
 - Consolidate Ubuntu dispatch into one Modal app per run, with four isolated Sandbox cells and bounded internal parallelism. Keep per-cell failure evidence, finish remaining cells after a failure, and fail the aggregate result when any cell fails.
 - Adopt the pi-codemode-bench topology: GitHub Actions only dispatches Ubuntu jobs to Modal; CircleCI executes macOS checks on Xcode 26.4.1 / m4pro.medium cloud VMs. Remove all self-hosted runner routing.
