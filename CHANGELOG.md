@@ -9,6 +9,7 @@ Versions **0.1.0 and later** are `dsh-session-cleanup`. The **1.x** entries at t
 ## Unreleased
 
 ### Compatibility
+- Verified on Linux the published pair dsh-TUI `v0.20.0` (`8958f08e3ba09a3db37d35c490d9589c114e7136`) and the Harness line that commit names, `0.2.2-rc.2` (`ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c`). `UPSTREAM_VALIDATED_VERSION` is `0.2.2-rc.2`. Live `/nix` and `/nix quit` checks passed 32/32. `dsh-v0.2.2-rc.3` is outside that TUI's supported set and was not tested. macOS Trash was not tested. See [TESTING.md](TESTING.md).
 - Re-verified on Linux the published pair dsh-TUI `v0.19.0` (`224f847d02c2157f43862d2792cf9d7459222f4c`) and the Harness line that commit names, `0.2.2-rc.1` (`66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`), against plugin `0.3.1`. `UPSTREAM_VALIDATED_VERSION` is `0.2.2-rc.1`. Live `/nix` and `/nix quit` checks passed 32/32. No newer Harness GitHub release was published. `dsh-v0.2.2-alpha.2` and `dsh-v0.2.2-alpha.3` are outside that TUI's supported set and were not tested. macOS Trash was not tested. See [TESTING.md](TESTING.md).
 
 ### CI
