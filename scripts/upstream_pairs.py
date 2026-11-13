@@ -29,7 +29,8 @@ PAIRS = {
         "tui_ref": "e7336a62030064daa2e4593f0ec7311c9c362b71",
         "tui_version": "0.18.0",
     },
-    # Published GitHub Latest v0.19.0. Not the unreleased merge above.
+    # Published GitHub Latest at the time of that record, v0.19.0.
+    # Not the unreleased merge above, and not the later v0.20.0 release.
     "released-019": {
         "harness_repository": "deepseek-ai/deepseek-harness",
         "harness_ref": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
@@ -37,6 +38,15 @@ PAIRS = {
         "tui_repository": "ccch1mneyyy/dsh-TUI",
         "tui_ref": "224f847d02c2157f43862d2792cf9d7459222f4c",
         "tui_version": "0.19.0",
+    },
+    # Published GitHub Latest v0.20.0 and the Harness line that commit names.
+    "released-020": {
+        "harness_repository": "deepseek-ai/deepseek-harness",
+        "harness_ref": "ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c",
+        "harness_version": "0.2.2-rc.2",
+        "tui_repository": "ccch1mneyyy/dsh-TUI",
+        "tui_ref": "8958f08e3ba09a3db37d35c490d9589c114e7136",
+        "tui_version": "0.20.0",
     },
 }
 
