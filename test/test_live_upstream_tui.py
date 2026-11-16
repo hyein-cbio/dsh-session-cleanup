@@ -212,6 +212,39 @@ class DriverTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 released.validate_sources(released.Report())
 
+    def test_released_021_pair_checks_published_sources(self):
+        published = "9f3928c80da3c384eeae15a13159dcddb2475f54"
+        previous_tui = "8958f08e3ba09a3db37d35c490d9589c114e7136"
+        previous_harness = "ddac96760b6edf8fa0fe17cbdcf0b512f4c12b2c"
+        with patch.dict(os.environ, {
+            "DSH_COMPAT_PAIR": "released-021",
+            "DSH_COMPAT_LOG": str(self.home / "pair-logs"),
+            "DSH_COMPAT_BIN": str(self.harness / "apps/cli/lib/bin.js"),
+            "DSH_COMPAT_HOME": str(self.home), "DSH_COMPAT_CWD": str(self.cwd),
+            "DSH_COMPAT_HARNESS_ROOT": str(self.harness), "DSH_COMPAT_TUI_ROOT": str(self.tui),
+        }):
+            spec = importlib.util.spec_from_file_location("released_021_driver", ROOT / "scripts/live-upstream-tui.py")
+            released = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(released)
+        self.assertEqual(released.EXPECTED_HARNESS_HEAD, "38a6a5c965aa99ab525161efb7cc5cf1fe62fced")
+        self.assertEqual(released.EXPECTED_TUI_HEAD, published)
+        heads = {str(self.harness): released.EXPECTED_HARNESS_HEAD, str(self.tui): published}
+        with patch.object(released, "git_head", side_effect=lambda root: heads[root]):
+            with self.assertRaises(SystemExit):
+                released.validate_sources(released.Report())
+            (self.harness / "apps/cli/package.json").write_text('{"name":"@deepseek-ai/dsh","version":"0.2.2-rc.3"}')
+            (self.tui / "package.json").write_text('{"name":"@deepseek-harness-tui/dsh-tui","version":"0.20.1"}')
+            report = released.Report()
+            released.validate_sources(report)
+            self.assertTrue(all(row["ok"] for row in report.rows))
+            heads[str(self.tui)] = previous_tui
+            with self.assertRaises(SystemExit):
+                released.validate_sources(released.Report())
+            heads[str(self.tui)] = published
+            heads[str(self.harness)] = previous_harness
+            with self.assertRaises(SystemExit):
+                released.validate_sources(released.Report())
+
     def test_sandbox_aliases_are_canonicalized_before_spawning(self):
         alias = self.home / "alias"
         alias.symlink_to(self.home, target_is_directory=True)
